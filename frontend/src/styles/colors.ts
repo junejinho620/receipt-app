@@ -1,23 +1,31 @@
 // App color palette
 export const colors = {
   // Primary
-  primary: '#000000',
+  primary: '#1E2A3B',
   secondary: '#666666',
 
   // Background
   background: '#FFFFFF',
-  surface: '#F5F5F5',
+  surface: '#F8F9FA',
+  border: '#E5E7EB',
+  borderDashed: '#CBD5E1',
 
   // Text
-  text: '#000000',
-  textSecondary: '#666666',
-  textLight: '#999999',
+  text: '#1E2A3B',
+  textSecondary: '#6B7280',
+  textLight: '#9CA3AF',
+  textPlaceholder: '#9CA3AF',
 
   // Accent
-  accent: '#FF6B6B',
+  accent: '#FF6B35',
+  streakBadge: '#FF6B35',
 
   // Status
   success: '#4CAF50',
   error: '#F44336',
   warning: '#FFC107',
+
+  // Button
+  buttonPrimary: '#1E2A3B',
+  buttonText: '#FFFFFF',
 };
