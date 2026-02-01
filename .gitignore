@@ -1,37 +1,41 @@
-# Xcode
-*.xcodeproj/*
-!*.xcodeproj/project.pbxproj
-!*.xcodeproj/xcshareddata/
-!*.xcodeproj/project.xcworkspace/
-*.xcworkspace/*
-!*.xcworkspace/contents.xcworkspacedata
-!*.xcworkspace/xcshareddata/
-xcuserdata/
-DerivedData/
-*.hmap
-*.ipa
-*.dSYM.zip
-*.dSYM
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
-# Swift Package Manager
-.build/
-.swiftpm/
+# dependencies
+node_modules/
 
-# CocoaPods
-Pods/
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
 
-# Carthage
-Carthage/Build/
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
 
-# OS generated files
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-*.swp
-*~
+*.pem
 
-# IDE
-*.idea/
-*.vscode/
+# local env files
+.env*.local
+
+# typescript
+*.tsbuildinfo
+
+# generated native folders
+/ios
+/android
