@@ -6,56 +6,63 @@ A personal, low-friction "memory-capture" app that treats your daily life like a
 
 Instead of random notifications, you "close the tab" on your day at a set time by uploading a single "proof of life"—a photo, a song, a screenshot, or just a few words. These entries are archived into a continuous, scrollable "receipt roll" with automated weekly recaps.
 
-## Tech Stack
-
-- **Expo** - React Native framework
-- **TypeScript** - Type-safe JavaScript
-- **React Native** - Cross-platform mobile development
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- npm or yarn
-- Expo Go app on your phone (for testing)
-
-### Installation
-
-```bash
-# Install dependencies
-npm install
-
-# Start the development server
-npm start
-```
-
-### Running the App
-
-After running `npm start`, you can:
-
-- **Scan the QR code** with Expo Go (Android) or Camera app (iOS)
-- Press `i` to open iOS simulator
-- Press `a` to open Android emulator
-- Press `w` to open in web browser
-
 ## Project Structure
 
 ```
 receipt-app/
-├── App.tsx          # Main app component
-├── app.json         # Expo configuration
-├── assets/          # Images, fonts, etc.
-├── index.ts         # Entry point
-├── package.json     # Dependencies
-└── tsconfig.json    # TypeScript config
+├── frontend/          # Expo/React Native mobile app
+│   ├── App.tsx
+│   ├── src/
+│   │   ├── screens/
+│   │   ├── components/
+│   │   └── styles/
+│   └── package.json
+│
+├── backend/           # Node.js/Express API server
+│   ├── src/
+│   │   ├── server.js
+│   │   ├── routes/
+│   │   ├── models/
+│   │   └── middleware/
+│   └── package.json
+│
+└── README.md
 ```
 
-## Scripts
+## Getting Started
 
-| Command | Description |
-|---------|-------------|
-| `npm start` | Start Expo dev server |
-| `npm run ios` | Run on iOS simulator |
-| `npm run android` | Run on Android emulator |
-| `npm run web` | Run in web browser |
+### Frontend (Mobile App)
+
+```bash
+cd frontend
+npm install
+npm start
+```
+
+Then scan the QR code with Expo Go app, or press `i` for iOS simulator.
+
+### Backend (API Server)
+
+```bash
+cd backend
+npm install
+cp .env.example .env    # Configure your environment
+npm run dev
+```
+
+## Tech Stack
+
+**Frontend:**
+- Expo / React Native
+- TypeScript
+
+**Backend:**
+- Node.js / Express
+- MongoDB / Mongoose
+
+## Team Workflow
+
+1. Work on feature branches: `git checkout -b feature/your-feature`
+2. Push changes: `git push -u origin feature/your-feature`
+3. Create Pull Request to merge into `dev`
+4. Merge `dev` into `main` for releases
