@@ -30,7 +30,7 @@ export function OnboardingScreen({ navigation }: OnboardingScreenProps) {
   const scrollX = useRef(new Animated.Value(0)).current;
 
   const handleSkip = () => {
-    navigation.replace('Home');
+    navigation.replace('InteractiveCanvas');
   };
 
   const handleNext = () => {
@@ -40,7 +40,7 @@ export function OnboardingScreen({ navigation }: OnboardingScreenProps) {
   };
 
   const handleGetStarted = () => {
-    navigation.replace('Home');
+    navigation.replace('InteractiveCanvas');
   };
 
   const isLastSlide = currentPage === ONBOARDING_SLIDES.length - 1;

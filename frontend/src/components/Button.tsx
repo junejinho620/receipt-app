@@ -6,19 +6,26 @@ interface ButtonProps {
   onPress: () => void;
   variant?: 'primary' | 'secondary';
   style?: ViewStyle;
+  disabled?: boolean;
 }
 
-export function Button({ title, onPress, variant = 'primary', style }: ButtonProps) {
+export function Button({ title, onPress, variant = 'primary', style, disabled = false }: ButtonProps) {
   return (
     <TouchableOpacity
       style={[
         styles.button,
         variant === 'secondary' && styles.secondary,
+        disabled && styles.disabled,
         style,
       ]}
       onPress={onPress}
+      disabled={disabled}
     >
-      <Text style={[styles.text, variant === 'secondary' && styles.secondaryText]}>
+      <Text style={[
+        styles.text,
+        variant === 'secondary' && styles.secondaryText,
+        disabled && styles.disabledText,
+      ]}>
         {title}
       </Text>
     </TouchableOpacity>
@@ -38,6 +45,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.primary,
   },
+  disabled: {
+    backgroundColor: colors.border,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
   text: {
     color: colors.background,
     fontSize: 16,
@@ -45,5 +57,8 @@ const styles = StyleSheet.create({
   },
   secondaryText: {
     color: colors.primary,
+  },
+  disabledText: {
+    color: colors.textLight,
   },
 });

@@ -11,7 +11,7 @@ import {
 import { BlurView } from 'expo-blur';
 import { colors } from '../styles';
 
-type MediaType = 'Photo' | 'Video' | 'Music';
+type MediaType = 'Photo' | 'Music';
 type InputType = 'Text' | 'Emoji';
 
 const SUGGESTED_PROMPTS = [
@@ -26,7 +26,8 @@ const SUGGESTED_PROMPTS = [
 ];
 
 const EMOJI_OPTIONS = [
-  '😊', '😂', '❤️', '🎉', '🔥', '👍', '💯', '✨'
+  '😊', '😂', '❤️', '🎉', '🔥', '👍', '💯', '✨',
+  '😢', '😭', '💔', '😞', '💧', '👎', '❌', '🌧️'
 ];
 
 export function HomeScreen() {
@@ -107,7 +108,7 @@ export function HomeScreen() {
 
         {/* Media Type Tabs */}
         <View style={styles.tabContainer}>
-          {(['Photo', 'Video', 'Music'] as MediaType[]).map((type) => (
+          {(['Photo', 'Music'] as MediaType[]).map((type) => (
             <TouchableOpacity
               key={type}
               style={[
@@ -374,14 +375,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   tabActive: {
     backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   tabText: {
     fontSize: 15,
     color: colors.textSecondary,
-    fontWeight: '500',
   },
   tabTextActive: {
     color: colors.buttonText,
@@ -428,14 +431,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   inputTabActive: {
     backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   inputTabText: {
     fontSize: 15,
     color: colors.textSecondary,
-    fontWeight: '500',
   },
   inputTabTextActive: {
     color: colors.buttonText,
@@ -506,12 +511,12 @@ const styles = StyleSheet.create({
   },
   emojiGrid: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 10,
-    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 7,
+    marginBottom: 8,
   },
   emojiButton: {
-    flex: 1,
+    width: '10.5%',
     aspectRatio: 1,
     backgroundColor: colors.surface,
     borderRadius: 10,
