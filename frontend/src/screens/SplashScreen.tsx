@@ -10,9 +10,9 @@ type SplashScreenProps = {
 
 export function SplashScreen({ navigation }: SplashScreenProps) {
   useEffect(() => {
-    // Navigate to Home after 2 seconds
+    // Navigate to Onboarding after 2 seconds
     const timer = setTimeout(() => {
-      navigation.replace('Home');
+      navigation.replace('Onboarding');
     }, 2000);
 
     return () => clearTimeout(timer);
