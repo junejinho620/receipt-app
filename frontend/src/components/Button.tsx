@@ -1,64 +1,112 @@
-import { StyleSheet, Text, TouchableOpacity, ViewStyle } from 'react-native';
-import { colors } from '../styles';
+import React from 'react';
+import { TouchableOpacity, StyleSheet, ViewStyle, Platform } from 'react-native';
+import { colors } from '../theme/colors';
+import { Typography } from './ui/Typography';
+import { layout } from '../theme/layout';
 
 interface ButtonProps {
   title: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary';
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
+  size?: 'small' | 'medium' | 'large';
   style?: ViewStyle;
   disabled?: boolean;
+  loading?: boolean;
 }
 
-export function Button({ title, onPress, variant = 'primary', style, disabled = false }: ButtonProps) {
+export function Button({
+  title,
+  onPress,
+  variant = 'primary',
+  size = 'medium',
+  style,
+  disabled = false,
+  loading = false
+}: ButtonProps) {
+
+  const getBackgroundColor = () => {
+    if (disabled) return colors.surfaceHighlight;
+    switch (variant) {
+      case 'primary': return colors.primary;
+      case 'secondary': return colors.secondary;
+      case 'outline': return 'transparent';
+      case 'ghost': return 'transparent';
+      default: return colors.primary;
+    }
+  };
+
+  const getTextColor = () => {
+    if (disabled) return colors.textSecondary;
+    switch (variant) {
+      case 'primary': return colors.background;
+      case 'secondary': return colors.textPrimary;
+      case 'outline': return colors.primary;
+      case 'ghost': return colors.textPrimary;
+      default: return colors.background;
+    }
+  };
+
+  const getHeight = () => {
+    switch (size) {
+      case 'small': return 36;
+      case 'medium': return 48;
+      case 'large': return 56;
+      default: return 48;
+    }
+  };
+
   return (
     <TouchableOpacity
       style={[
-        styles.button,
-        variant === 'secondary' && styles.secondary,
+        styles.container,
+        {
+          backgroundColor: getBackgroundColor(),
+          height: getHeight(),
+          borderColor: variant === 'outline' ? colors.primary : 'transparent',
+          borderWidth: variant === 'outline' ? 1 : 0,
+        },
         disabled && styles.disabled,
         style,
       ]}
       onPress={onPress}
-      disabled={disabled}
+      disabled={disabled || loading}
+      activeOpacity={0.8}
     >
-      <Text style={[
-        styles.text,
-        variant === 'secondary' && styles.secondaryText,
-        disabled && styles.disabledText,
-      ]}>
-        {title}
-      </Text>
+      <Typography
+        variant="bold"
+        size={size === 'small' ? 'small' : 'body'}
+        color={getTextColor()}
+        style={[styles.text, { letterSpacing: 0.5 }]}
+      >
+        {loading ? 'Processing...' : title}
+      </Typography>
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
-  button: {
-    backgroundColor: colors.primary,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 8,
+  container: {
+    paddingHorizontal: layout.spacing.xl,
+    borderRadius: 999, // Pill shape
     alignItems: 'center',
-  },
-  secondary: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: colors.primary,
+    justifyContent: 'center',
+    flexDirection: 'row',
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.secondary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
   disabled: {
-    backgroundColor: colors.border,
-    shadowOpacity: 0,
-    elevation: 0,
+    opacity: 0.6,
   },
   text: {
-    color: colors.background,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  secondaryText: {
-    color: colors.primary,
-  },
-  disabledText: {
-    color: colors.textLight,
+    // textTransform handled in props if needed, but 'uppercase' removed for calmer vibe
   },
 });

@@ -1,157 +1,111 @@
-import React, { useState, useRef } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  TouchableOpacity,
-  FlatList,
-  useWindowDimensions,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-  Animated,
-} from 'react-native';
+import React, { useRef, useState } from 'react';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedScrollHandler,
+} from 'react-native-reanimated';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { ONBOARDING_SLIDES } from '../constants/onboarding';
 import { OnboardingSlide } from '../components/OnboardingSlide';
 import { PaginationDots } from '../components/PaginationDots';
 import { Button } from '../components/Button';
-import { colors } from '../styles';
+import { ScreenWrapper } from '../components/ui/ScreenWrapper';
+import { Typography } from '../components/ui/Typography';
+import { colors } from '../theme/colors';
+import { layout } from '../theme/layout';
 
 type OnboardingScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Onboarding'>;
 };
 
 export function OnboardingScreen({ navigation }: OnboardingScreenProps) {
-  const [currentPage, setCurrentPage] = useState(0);
-  const listRef = useRef<FlatList>(null);
-  const { width } = useWindowDimensions();
-  const scrollX = useRef(new Animated.Value(0)).current;
+  const scrollX = useSharedValue(0);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const flatListRef = useRef<Animated.FlatList<any>>(null);
+
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollX.value = event.contentOffset.x;
+    },
+  });
+
+  const handleScrollEnd = (e: any) => {
+    const contentOffsetX = e.nativeEvent.contentOffset.x;
+    const viewSize = e.nativeEvent.layoutMeasurement.width;
+    const newIndex = Math.round(contentOffsetX / viewSize);
+    setCurrentIndex(newIndex);
+  };
 
   const handleSkip = () => {
     navigation.replace('InteractiveCanvas');
   };
 
   const handleNext = () => {
-    if (currentPage < ONBOARDING_SLIDES.length - 1) {
-      listRef.current?.scrollToIndex({ index: currentPage + 1, animated: true });
+    if (currentIndex < ONBOARDING_SLIDES.length - 1) {
+      flatListRef.current?.scrollToIndex({ index: currentIndex + 1, animated: true });
+      setCurrentIndex(currentIndex + 1);
+    } else {
+      handleSkip();
     }
   };
 
-  const handleGetStarted = () => {
-    navigation.replace('InteractiveCanvas');
-  };
-
-  const isLastSlide = currentPage === ONBOARDING_SLIDES.length - 1;
-
-  const handleScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const nextIndex = Math.round(event.nativeEvent.contentOffset.x / width);
-    setCurrentPage(nextIndex);
-  };
+  const isLastSlide = currentIndex === ONBOARDING_SLIDES.length - 1;
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Skip Button */}
+    <ScreenWrapper>
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleSkip} style={styles.skipButton}>
-          <Text style={styles.skipText}>Skip</Text>
+        <TouchableOpacity onPress={handleSkip} hitSlop={16}>
+          <Typography variant="medium" size="small" color={colors.textSecondary}>Skip</Typography>
         </TouchableOpacity>
       </View>
 
-      {/* Slides */}
       <Animated.FlatList
-        ref={listRef}
+        ref={flatListRef}
         data={ONBOARDING_SLIDES}
-        keyExtractor={(_, index) => `onboarding-slide-${index}`}
+        keyExtractor={(_, index) => `slide-${index}`}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
+        onScroll={scrollHandler}
         onMomentumScrollEnd={handleScrollEnd}
-        style={styles.pagerView}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-          { useNativeDriver: true }
-        )}
         scrollEventThrottle={16}
-        getItemLayout={(_, index) => ({
-          length: width,
-          offset: width * index,
-          index,
-        })}
-        renderItem={({ item, index }) => {
-          const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
-          const opacity = scrollX.interpolate({
-            inputRange,
-            outputRange: [0.6, 1, 0.6],
-            extrapolate: 'clamp',
-          });
-          const scale = scrollX.interpolate({
-            inputRange,
-            outputRange: [0.98, 1, 0.98],
-            extrapolate: 'clamp',
-          });
-          const translateY = scrollX.interpolate({
-            inputRange,
-            outputRange: [6, 0, 6],
-            extrapolate: 'clamp',
-          });
-
-          return (
-            <Animated.View style={[styles.page, { width, opacity, transform: [{ scale }, { translateY }] }]}>
-              <OnboardingSlide icon={item.icon} title={item.title} description={item.description} />
-            </Animated.View>
-          );
-        }}
+        renderItem={({ item }) => (
+          <OnboardingSlide image={item.image} title={item.title} description={item.description} />
+        )}
+        style={styles.list}
       />
 
-      {/* Footer with Pagination Dots and Button */}
       <View style={styles.footer}>
-        <PaginationDots count={ONBOARDING_SLIDES.length} activeIndex={currentPage} />
+        <PaginationDots count={ONBOARDING_SLIDES.length} activeIndex={currentIndex} />
         <Button
           title={isLastSlide ? 'Get Started' : 'Next'}
-          onPress={isLastSlide ? handleGetStarted : handleNext}
+          onPress={handleNext}
           variant="primary"
           style={styles.button}
         />
       </View>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
   header: {
-    paddingHorizontal: 24,
-    paddingTop: 16,
+    paddingHorizontal: layout.spacing.l,
+    paddingTop: layout.spacing.m,
     alignItems: 'flex-end',
+    marginBottom: layout.spacing.m,
   },
-  skipButton: {
-    padding: 8,
-  },
-  skipText: {
-    fontSize: 16,
-    color: colors.textSecondary,
-  },
-  pagerView: {
+  list: {
     flex: 1,
-  },
-  page: {
-    flex: 1,
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   footer: {
-    paddingHorizontal: 24,
-    paddingBottom: 48,
-    gap: 24,
+    padding: layout.spacing.l,
     alignItems: 'center',
+    marginBottom: layout.spacing.l,
   },
   button: {
     width: '100%',
+    marginTop: layout.spacing.l,
   },
 });

@@ -1,15 +1,19 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
-  Text,
   View,
   TouchableOpacity,
   TextInput,
-  SafeAreaView,
   ScrollView,
+  Platform,
 } from 'react-native';
-import { BlurView } from 'expo-blur';
-import { colors } from '../styles';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import { colors } from '../theme/colors';
+import { layout } from '../theme/layout';
+import { ScreenWrapper } from '../components/ui/ScreenWrapper';
+import { Typography } from '../components/ui/Typography';
+import { Button } from '../components/Button';
+import { Card } from '../components/ui/Card';
 
 type MediaType = 'Photo' | 'Music';
 type InputType = 'Text' | 'Emoji';
@@ -20,9 +24,6 @@ const SUGGESTED_PROMPTS = [
   "Something you're grateful for",
   "What challenged you today?",
   "A moment worth remembering",
-  "What did you learn today?",
-  "Who made a difference today?",
-  "Your biggest accomplishment",
 ];
 
 const EMOJI_OPTIONS = [
@@ -36,27 +37,18 @@ export function HomeScreen() {
   const [textContent, setTextContent] = useState('');
   const [selectedEmojis, setSelectedEmojis] = useState<string[]>([]);
   const [selectedPromptIndex, setSelectedPromptIndex] = useState<number | null>(null);
-  const [showCustomEmojiInput, setShowCustomEmojiInput] = useState(false);
-  const [customEmojiInput, setCustomEmojiInput] = useState('');
 
   const characterCount = textContent.length;
-  const emojiCount = selectedEmojis.length;
   const hasContent = selectedInput === 'Text'
     ? textContent.trim().length > 0
     : selectedEmojis.length > 0;
 
   const today = new Date();
   const formattedDate = today.toLocaleDateString('en-US', {
-    month: 'short',
+    weekday: 'long',
+    month: 'long',
     day: 'numeric',
-    year: 'numeric',
   });
-
-  const streakCount = 212;
-
-  const handlePromptPress = (index: number) => {
-    setSelectedPromptIndex(selectedPromptIndex === index ? null : index);
-  };
 
   const handleEmojiPress = (emoji: string) => {
     if (selectedEmojis.includes(emoji)) {
@@ -66,571 +58,311 @@ export function HomeScreen() {
     }
   };
 
-  const removeEmoji = (emoji: string) => {
-    setSelectedEmojis(selectedEmojis.filter(e => e !== emoji));
-  };
-
-  const handleCustomEmojiSubmit = () => {
-    if (customEmojiInput.trim()) {
-      // Extract emojis from the input
-      const emojiRegex = /[\p{Emoji}\u200d]+/gu;
-      const emojis = customEmojiInput.match(emojiRegex) || [];
-
-      emojis.forEach(emoji => {
-        if (!selectedEmojis.includes(emoji)) {
-          setSelectedEmojis(prev => [...prev, emoji]);
-        }
-      });
-
-      setCustomEmojiInput('');
-      setShowCustomEmojiInput(false);
-    }
-  };
-
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.dateContainer}>
-            <Text style={styles.dateText}>{formattedDate}</Text>
-            <BlurView intensity={40} tint="light" style={styles.streakBadge}>
-              <Text style={styles.streakCount}>{streakCount}</Text>
-              <Text style={styles.streakEmoji}>🔥</Text>
-            </BlurView>
+    <ScreenWrapper>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header - Minimal & Clean */}
+        <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.header}>
+          <Typography variant="regular" size="small" color={colors.textSecondary} style={{ letterSpacing: 1 }}>
+            DAILY LOG
+          </Typography>
+          <Typography variant="bold" size="h1" color={colors.textPrimary} style={styles.dateText}>
+            {formattedDate}
+          </Typography>
+          <View style={styles.streakBadge}>
+            <Typography variant="mono" size="caption" color={colors.surface}>212 DAY STREAK</Typography>
           </View>
-          <TouchableOpacity style={styles.menuButton}>
-            <View style={styles.menuLine} />
-            <View style={styles.menuLine} />
-            <View style={styles.menuLine} />
-          </TouchableOpacity>
-        </View>
+        </Animated.View>
 
-        {/* Media Type Tabs */}
-        <View style={styles.tabContainer}>
-          {(['Photo', 'Music'] as MediaType[]).map((type) => (
-            <TouchableOpacity
-              key={type}
-              style={[
-                styles.tab,
-                selectedMedia === type && styles.tabActive,
-              ]}
-              onPress={() => setSelectedMedia(type)}
-            >
-              <Text
-                style={[
-                  styles.tabText,
-                  selectedMedia === type && styles.tabTextActive,
-                ]}
-              >
-                {type}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        {/* Timeline Connector */}
+        <View style={styles.timelineContainer}>
+          <View style={styles.timelineLine} />
 
-        {/* Upload Area */}
-        <TouchableOpacity style={styles.uploadArea}>
-          <View style={styles.uploadIcon}>
-            <Text style={styles.uploadArrow}>↑</Text>
-          </View>
-          <Text style={styles.uploadText}>Drop your {selectedMedia.toLowerCase()} here</Text>
-          <Text style={styles.uploadSubtext}>or click to browse</Text>
-        </TouchableOpacity>
+          {/* Main Entry Card */}
+          <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.contentContainer}>
 
-        {/* Input Type Tabs */}
-        <View style={styles.inputTabContainer}>
-          {(['Text', 'Emoji'] as InputType[]).map((type) => (
-            <TouchableOpacity
-              key={type}
-              style={[
-                styles.inputTab,
-                selectedInput === type && styles.inputTabActive,
-              ]}
-              onPress={() => setSelectedInput(type)}
-            >
-              <Text
-                style={[
-                  styles.inputTabText,
-                  selectedInput === type && styles.inputTabTextActive,
-                ]}
-              >
-                {type}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Text Input Area */}
-        {selectedInput === 'Text' ? (
-          <View style={styles.textInputContainer}>
-            <TextInput
-              style={styles.textInput}
-              placeholder="What's on your mind today?"
-              placeholderTextColor={colors.textPlaceholder}
-              multiline
-              value={textContent}
-              onChangeText={setTextContent}
-            />
-            <View style={styles.characterCountContainer}>
-              <Text style={styles.characterCount}>{characterCount} characters</Text>
-            </View>
-          </View>
-        ) : (
-          <View style={styles.emojiContainer}>
-            {/* Selected Emojis Display */}
-            <View style={styles.selectedEmojisRow}>
-              <Text style={styles.selectedLabel}>Selected:</Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.selectedScrollView}
-              >
-                {selectedEmojis.length > 0 ? (
-                  selectedEmojis.map((emoji, index) => (
-                    <TouchableOpacity
-                      key={index}
-                      onPress={() => removeEmoji(emoji)}
-                      style={styles.selectedEmojiItem}
-                    >
-                      <Text style={styles.selectedEmojiText}>{emoji}</Text>
-                    </TouchableOpacity>
-                  ))
-                ) : (
-                  <Text style={styles.emptySelectedText}>Tap emojis below to select</Text>
-                )}
-              </ScrollView>
-              <Text style={styles.emojiCount}>
-                {emojiCount}
-              </Text>
-            </View>
-
-            {/* Emoji Grid - Single Row */}
-            <View style={styles.emojiGrid}>
-              {EMOJI_OPTIONS.map((emoji, index) => (
+            {/* Input Mode Selector - Floating Pills */}
+            <View style={styles.modeSelector}>
+              {(['Text', 'Emoji'] as InputType[]).map((type) => (
                 <TouchableOpacity
-                  key={index}
+                  key={type}
+                  onPress={() => setSelectedInput(type)}
                   style={[
-                    styles.emojiButton,
-                    selectedEmojis.includes(emoji) && styles.emojiButtonSelected,
+                    styles.modeChip,
+                    selectedInput === type && styles.modeChipActive
                   ]}
-                  onPress={() => handleEmojiPress(emoji)}
                 >
-                  <Text style={styles.emojiText}>{emoji}</Text>
+                  <Typography
+                    variant={selectedInput === type ? "bold" : "regular"}
+                    size="small"
+                    color={selectedInput === type ? colors.surface : colors.textSecondary}
+                  >
+                    {type}
+                  </Typography>
                 </TouchableOpacity>
               ))}
             </View>
 
-            {/* Add Custom Emoji */}
-            {!showCustomEmojiInput ? (
-              <TouchableOpacity
-                style={styles.addMoreButton}
-                onPress={() => setShowCustomEmojiInput(true)}
-              >
-                <Text style={styles.addMoreText}>+ Add more emojis</Text>
-              </TouchableOpacity>
-            ) : (
-              <View style={styles.customEmojiInputContainer}>
-                <TextInput
-                  style={styles.customEmojiInput}
-                  placeholder="Browse emojis..."
-                  placeholderTextColor={colors.textPlaceholder}
-                  value={customEmojiInput}
-                  onChangeText={setCustomEmojiInput}
-                  autoFocus
-                  onSubmitEditing={handleCustomEmojiSubmit}
-                />
-                <TouchableOpacity
-                  style={styles.addEmojiButton}
-                  onPress={handleCustomEmojiSubmit}
-                >
-                  <Text style={styles.addEmojiButtonText}>Add</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-        )}
+            {/* Input Area */}
+            <Card variant="elevated" style={styles.inputCard}>
+              {selectedInput === 'Text' ? (
+                <View>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Capture your day..."
+                    placeholderTextColor={colors.textTertiary}
+                    multiline
+                    value={textContent}
+                    onChangeText={setTextContent}
+                  />
+                  <View style={styles.inputFooter}>
+                    <Typography variant="mono" size="caption" color={colors.textTertiary}>
+                      {0 + characterCount} / 500
+                    </Typography>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.emojiGrid}>
+                  {EMOJI_OPTIONS.map((emoji, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={[
+                        styles.emojiButton,
+                        selectedEmojis.includes(emoji) && styles.emojiButtonSelected,
+                      ]}
+                      onPress={() => handleEmojiPress(emoji)}
+                    >
+                      <Typography size="h2">{emoji}</Typography>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </Card>
 
-        {/* Suggested Prompts */}
-        <View style={styles.promptsSection}>
-          <Text style={styles.promptsLabel}>Need inspiration?</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.promptsScroll}
-            contentContainerStyle={styles.promptsContent}
-          >
-            {SUGGESTED_PROMPTS.map((prompt, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.promptChip,
-                  selectedPromptIndex === index && styles.promptChipSelected,
-                ]}
-                onPress={() => handlePromptPress(index)}
-              >
-                <Text style={[
-                  styles.promptText,
-                  selectedPromptIndex === index && styles.promptTextSelected,
-                ]}>
-                  {prompt}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+            {/* Media & Prompts Section */}
+            <View style={styles.addonsContainer}>
+              <Typography variant="bold" size="small" color={colors.textSecondary} style={styles.sectionTitle}>
+                ADD EVIDENCE
+              </Typography>
+
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.mediaScroll}>
+                {(['Photo', 'Music'] as MediaType[]).map((type) => (
+                  <TouchableOpacity
+                    key={type}
+                    style={[
+                      styles.mediaButton,
+                      selectedMedia === type && styles.mediaButtonActive
+                    ]}
+                    onPress={() => setSelectedMedia(type)}
+                  >
+                    <Image
+                      source={type === 'Photo' ? require('../../assets/camera-3d-green.png') : require('../../assets/music-note-3d-green.png')}
+                      style={{ width: 24, height: 24, marginRight: 8 }}
+                      resizeMode="contain"
+                    />
+                    <Typography
+                      variant="medium"
+                      size="small"
+                      color={selectedMedia === type ? colors.primary : colors.textSecondary}
+                    >
+                      {type}
+                    </Typography>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* Prompts */}
+            <View style={styles.promptsContainer}>
+              <Typography variant="bold" size="small" color={colors.textSecondary} style={styles.sectionTitle}>
+                REFLECTION PROMPTS
+              </Typography>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.promptsScroll}>
+                {SUGGESTED_PROMPTS.map((prompt, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.promptChip,
+                      selectedPromptIndex === index && styles.promptChipSelected,
+                    ]}
+                    onPress={() => setSelectedPromptIndex(selectedPromptIndex === index ? null : index)}
+                  >
+                    <Typography
+                      variant="medium"
+                      size="caption"
+                      color={selectedPromptIndex === index ? colors.surface : colors.textSecondary}
+                    >
+                      {prompt}
+                    </Typography>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+          </Animated.View>
         </View>
 
-        {/* Save Button */}
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={[
-              styles.saveButton,
-              !hasContent && styles.saveButtonDisabled
-            ]}
+        {/* Submit */}
+        <Animated.View entering={FadeInDown.delay(400).springify()} style={styles.footer}>
+          <Button
+            title="Settle the Books"
+            onPress={() => { }}
             disabled={!hasContent}
-          >
-            <Text style={[
-              styles.saveButtonText,
-              !hasContent && styles.saveButtonTextDisabled
-            ]}>
-              Save Today's Receipt
-            </Text>
-          </TouchableOpacity>
-        </View>
+            variant="primary"
+            style={styles.submitButton}
+          />
+          <Typography variant="mono" size="caption" color={colors.textTertiary} centered style={{ marginTop: 12 }}>
+            RECEIPT #{(Math.random() * 10000).toFixed(0).padStart(5, '0')}
+          </Typography>
+        </Animated.View>
+
       </ScrollView>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
   scrollView: {
     flex: 1,
-    paddingHorizontal: 24,
+  },
+  scrollContent: {
+    padding: layout.spacing.l,
+    paddingBottom: layout.spacing.xxl,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 20,
-    paddingBottom: 24,
-  },
-  dateContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+    marginBottom: layout.spacing.xl,
   },
   dateText: {
-    fontSize: 28,
-    fontWeight: '600',
-    color: colors.text,
+    marginVertical: 4,
   },
   streakBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
+    backgroundColor: colors.secondary,
+    paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
-    borderRadius: 14,
-    gap: 4,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.36,
-    shadowRadius: 8,
-    elevation: 4,
+    borderRadius: 99,
+    alignSelf: 'flex-start',
+    marginTop: 8,
   },
-  streakEmoji: {
-    fontSize: 14,
+  timelineContainer: {
+    flexDirection: 'row',
+    marginBottom: layout.spacing.xl,
   },
-  streakCount: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  menuButton: {
-    padding: 8,
-    gap: 5,
-  },
-  menuLine: {
-    width: 20,
-    height: 2,
-    backgroundColor: colors.text,
+  timelineLine: {
+    width: 2,
+    backgroundColor: colors.border,
+    marginRight: layout.spacing.l,
     borderRadius: 1,
   },
-  tabContainer: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 16,
-  },
-  tab: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  tabActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  tabText: {
-    fontSize: 15,
-    color: colors.textSecondary,
-  },
-  tabTextActive: {
-    color: colors.buttonText,
-  },
-  uploadArea: {
-    borderWidth: 2,
-    borderColor: colors.borderDashed,
-    borderStyle: 'dashed',
-    borderRadius: 12,
-    paddingVertical: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 32,
-  },
-  uploadIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 8,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  uploadArrow: {
-    fontSize: 24,
-    color: colors.textSecondary,
-  },
-  uploadText: {
-    fontSize: 15,
-    color: colors.text,
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  uploadSubtext: {
-    fontSize: 14,
-    color: colors.textLight,
-  },
-  inputTabContainer: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 12,
-  },
-  inputTab: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  inputTabActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  inputTabText: {
-    fontSize: 15,
-    color: colors.textSecondary,
-  },
-  inputTabTextActive: {
-    color: colors.buttonText,
-  },
-  textInputContainer: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    marginBottom: 32,
-    minHeight: 180,
-    position: 'relative',
-  },
-  textInput: {
-    padding: 16,
-    paddingBottom: 40,
-    fontSize: 15,
-    color: colors.text,
-    textAlignVertical: 'top',
-    minHeight: 180,
-  },
-  characterCountContainer: {
-    position: 'absolute',
-    bottom: 12,
-    right: 16,
-  },
-  characterCount: {
-    fontSize: 12,
-    color: colors.textLight,
-  },
-  emojiContainer: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    marginBottom: 32,
-    padding: 12,
-  },
-  selectedEmojisRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 8,
-  },
-  selectedLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  selectedScrollView: {
+  contentContainer: {
     flex: 1,
   },
-  selectedEmojiItem: {
-    marginRight: 6,
+  modeSelector: {
+    flexDirection: 'row',
+    marginBottom: layout.spacing.m,
   },
-  selectedEmojiText: {
-    fontSize: 24,
+  modeChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 8,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  emptySelectedText: {
-    fontSize: 12,
-    color: colors.textLight,
-    fontStyle: 'italic',
+  modeChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
-  emojiCount: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontWeight: '600',
-    minWidth: 20,
-    textAlign: 'right',
+  inputCard: {
+    marginBottom: layout.spacing.xl,
+    minHeight: 180,
+  },
+  textInput: {
+    fontFamily: 'Manrope_400Regular',
+    fontSize: 16,
+    color: colors.textPrimary,
+    minHeight: 120,
+    textAlignVertical: 'top',
+  },
+  inputFooter: {
+    alignItems: 'flex-end',
+    marginTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingTop: 8,
+    borderStyle: 'dashed',
   },
   emojiGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 7,
-    marginBottom: 8,
+    gap: 12,
   },
   emojiButton: {
-    width: '10.5%',
-    aspectRatio: 1,
-    backgroundColor: colors.surface,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
+    width: 44,
+    height: 44,
     justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 22,
+    backgroundColor: colors.background,
   },
   emojiButtonSelected: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.surfaceHighlight,
+    borderWidth: 1,
     borderColor: colors.primary,
   },
-  emojiText: {
-    fontSize: 24,
+  addonsContainer: {
+    marginBottom: layout.spacing.xl,
   },
-  addMoreButton: {
-    padding: 10,
-    alignItems: 'center',
+  sectionTitle: {
+    marginBottom: layout.spacing.m,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  addMoreText: {
-    fontSize: 13,
-    color: colors.primary,
-    fontWeight: '500',
+  mediaScroll: {
+
   },
-  customEmojiInputContainer: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'center',
-  },
-  customEmojiInput: {
-    flex: 1,
+  mediaButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 16,
+    backgroundColor: colors.surface,
+    marginRight: 12,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 8,
-    padding: 8,
-    fontSize: 14,
-    color: colors.text,
   },
-  addEmojiButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
+  mediaButtonActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.surfaceHighlight,
   },
-  addEmojiButtonText: {
-    color: colors.buttonText,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  promptsSection: {
-    marginBottom: 24,
-  },
-  promptsLabel: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginBottom: 12,
-    fontWeight: '500',
+  promptsContainer: {
+
   },
   promptsScroll: {
-    marginHorizontal: -24,
-    paddingHorizontal: 24,
-  },
-  promptsContent: {
-    gap: 10,
+    marginLeft: -layout.spacing.l,
+    paddingHorizontal: layout.spacing.l,
   },
   promptChip: {
-    backgroundColor: colors.surface,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
+    marginRight: 8,
   },
   promptChipSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: colors.secondary,
+    borderColor: colors.secondary,
   },
-  promptText: {
-    fontSize: 14,
-    color: colors.text,
-    fontWeight: '500',
+  footer: {
+    marginTop: layout.spacing.l,
   },
-  promptTextSelected: {
-    color: colors.buttonText,
-  },
-  buttonContainer: {
-    paddingBottom: 48,
-  },
-  saveButton: {
-    backgroundColor: colors.buttonPrimary,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  saveButtonDisabled: {
-    backgroundColor: colors.border,
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.buttonText,
-  },
-  saveButtonTextDisabled: {
-    color: colors.textLight,
+  submitButton: {
+    width: '100%',
+    height: 56,
   },
 });
