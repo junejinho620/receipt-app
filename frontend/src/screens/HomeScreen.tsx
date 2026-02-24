@@ -50,6 +50,9 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
   const [selectedEmojis, setSelectedEmojis] = useState<string[]>([]);
   const [selectedPromptIndex, setSelectedPromptIndex] = useState<number | null>(null);
 
+  const [logTitle, setLogTitle] = useState('');
+  const [location, setLocation] = useState('');
+
   const characterCount = textContent.length;
   const hasContent = selectedInput === 'Text'
     ? textContent.trim().length > 0
@@ -148,6 +151,28 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
 
                 {/* Input Area */}
                 <Card variant="elevated" style={styles.inputCard}>
+                  {/* Common Header: Title & Location */}
+                  <View style={styles.inputHeader}>
+                    <TextInput
+                      style={styles.titleInput}
+                      placeholder="Title"
+                      placeholderTextColor={colors.textTertiary}
+                      value={logTitle}
+                      onChangeText={setLogTitle}
+                    />
+                    <View style={styles.locationContainer}>
+                      <Feather name="map-pin" size={14} color={colors.textTertiary} />
+                      <TextInput
+                        style={styles.locationInput}
+                        placeholder="Add location"
+                        placeholderTextColor={colors.textTertiary}
+                        value={location}
+                        onChangeText={setLocation}
+                      />
+                    </View>
+                  </View>
+                  <View style={styles.divider} />
+
                   {selectedInput === 'Text' ? (
                     <View>
                       <TextInput
@@ -269,6 +294,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
         onClose={() => setMenuVisible(false)}
         onLogout={() => console.log('Logout Clicked')}
         onNavigateToProfile={() => navigation.navigate('Profile')}
+        onNavigateToCalendar={() => navigation.navigate('Calendar')}
       />
     </ScreenWrapper >
   );
@@ -341,6 +367,32 @@ const styles = StyleSheet.create({
   inputCard: {
     marginBottom: layout.spacing.xl,
     minHeight: 180,
+  },
+  inputHeader: {
+    paddingBottom: layout.spacing.m,
+  },
+  titleInput: {
+    fontFamily: 'JetBrainsMono_400Regular',
+    fontSize: 16,
+    color: colors.textPrimary,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  locationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  locationInput: {
+    fontFamily: 'JetBrainsMono_400Regular',
+    fontSize: 14,
+    color: colors.textSecondary,
+    flex: 1,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginBottom: layout.spacing.m,
   },
   textInput: {
     fontFamily: 'Manrope_400Regular',

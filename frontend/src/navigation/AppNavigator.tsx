@@ -7,6 +7,7 @@ import { AuthScreen } from '../screens/AuthScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { PermissionsScreen } from '../screens/PermissionsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
+import { CalendarScreen } from '../screens/CalendarScreen';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -16,6 +17,7 @@ export type RootStackParamList = {
   Permissions: undefined;
   Home: undefined;
   Profile: undefined;
+  Calendar: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -36,6 +38,7 @@ export function AppNavigator() {
         <Stack.Screen name="Permissions" component={PermissionsScreen} />
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
+        <Stack.Screen name="Calendar" component={CalendarScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -10,9 +10,10 @@ type MenuModalProps = {
   onClose: () => void;
   onLogout: () => void;
   onNavigateToProfile?: () => void;
+  onNavigateToCalendar?: () => void;
 };
 
-export function MenuModal({ visible, onClose, onLogout, onNavigateToProfile }: MenuModalProps) {
+export function MenuModal({ visible, onClose, onLogout, onNavigateToProfile, onNavigateToCalendar }: MenuModalProps) {
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>
@@ -50,7 +51,13 @@ export function MenuModal({ visible, onClose, onLogout, onNavigateToProfile }: M
                 <Typography variant="bold" size="small" color={colors.textSecondary} style={styles.sectionTitle}>
                   THE LEDGER
                 </Typography>
-                <TouchableOpacity style={styles.menuItem}>
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={() => {
+                    onClose();
+                    onNavigateToCalendar?.();
+                  }}
+                >
                   <Feather name="calendar" size={20} color={colors.textPrimary} style={styles.menuIcon} />
                   <Typography variant="medium" color={colors.textPrimary}>Calendar View</Typography>
                 </TouchableOpacity>

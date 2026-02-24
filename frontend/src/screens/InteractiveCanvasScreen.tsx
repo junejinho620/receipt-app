@@ -8,6 +8,7 @@ import {
   ScrollView,
   TextInput,
 } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { Button } from '../components/Button';
@@ -27,6 +28,8 @@ type InputType = 'Text' | 'Photo';
 export function InteractiveCanvasScreen({ navigation }: InteractiveCanvasScreenProps) {
   const [selectedInput, setSelectedInput] = useState<InputType>('Text');
   const [textContent, setTextContent] = useState('');
+  const [logTitle, setLogTitle] = useState('');
+  const [location, setLocation] = useState('');
   const [hasPhoto, setHasPhoto] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
@@ -83,6 +86,28 @@ export function InteractiveCanvasScreen({ navigation }: InteractiveCanvasScreenP
                     day: 'numeric',
                   }).toUpperCase()}
                 </Typography>
+                <View style={styles.dashedLine} />
+              </View>
+
+              {/* Title & Location Header for Receipt */}
+              <View style={styles.receiptMetadata}>
+                <TextInput
+                  placeholder="Title"
+                  placeholderTextColor={colors.textTertiary}
+                  value={logTitle}
+                  onChangeText={setLogTitle}
+                  style={styles.receiptTitleInput}
+                />
+                <View style={styles.receiptLocationRow}>
+                  <Feather name="map-pin" size={12} color={colors.textSecondary} />
+                  <TextInput
+                    placeholder="Add location"
+                    placeholderTextColor={colors.textTertiary}
+                    value={location}
+                    onChangeText={setLocation}
+                    style={styles.receiptLocationInput}
+                  />
+                </View>
                 <View style={styles.dashedLine} />
               </View>
 
@@ -209,6 +234,28 @@ const styles = StyleSheet.create({
     borderColor: colors.textTertiary,
     borderStyle: 'dashed',
     marginTop: layout.spacing.s,
+  },
+  receiptMetadata: {
+    paddingBottom: layout.spacing.m,
+  },
+  receiptTitleInput: {
+    fontFamily: 'JetBrainsMono_700Bold',
+    fontSize: 16,
+    color: colors.textPrimary,
+    marginBottom: 8,
+    marginTop: 8,
+  },
+  receiptLocationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: layout.spacing.m,
+  },
+  receiptLocationInput: {
+    fontFamily: 'JetBrainsMono_400Regular',
+    fontSize: 12,
+    color: colors.textSecondary,
+    flex: 1,
   },
   receiptInput: {
     flex: 1,
