@@ -177,6 +177,8 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: layout.spacing.l,
+    paddingTop: 80,
+    paddingBottom: 80,
   },
   header: {
     marginBottom: layout.spacing.l,
@@ -206,7 +208,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.textTertiary,
     borderStyle: 'dashed',
-    borderRadius: 1,
     marginTop: layout.spacing.s,
   },
   receiptInput: {
@@ -223,7 +224,6 @@ const styles = StyleSheet.create({
     minHeight: 200,
     borderWidth: 2,
     borderColor: colors.border,
-    borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.5)',
@@ -266,6 +266,5 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   footer: {
-    marginTop: 'auto',
   },
 });

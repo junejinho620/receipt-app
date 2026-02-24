@@ -44,6 +44,12 @@
       <key>NSAllowsLocalNetworking</key>
       <true/>
     </dict>
+    <key>NSCameraUsageDescription</key>
+    <string>Allow The Receipt to access your camera to scan physical receipts.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Allow The Receipt to access your microphone for recording audio.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Allow The Receipt to access your photos to attach images to your daily log.</string>
     <key>UILaunchStoryboardName</key>
     <string>SplashScreen</string>
     <key>UIRequiredDeviceCapabilities</key>

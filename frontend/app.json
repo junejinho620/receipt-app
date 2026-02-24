@@ -29,7 +29,20 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow The Receipt to access your camera to scan physical receipts."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow The Receipt to access your photos to attach images to your daily log."
+        }
+      ],
+      "expo-notifications"
     ]
   }
 }

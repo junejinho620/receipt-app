@@ -5,13 +5,17 @@ import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { InteractiveCanvasScreen } from '../screens/InteractiveCanvasScreen';
 import { AuthScreen } from '../screens/AuthScreen';
 import { HomeScreen } from '../screens/HomeScreen';
+import { PermissionsScreen } from '../screens/PermissionsScreen';
+import { ProfileScreen } from '../screens/ProfileScreen';
 
 export type RootStackParamList = {
   Splash: undefined;
   Onboarding: undefined;
   InteractiveCanvas: undefined;
   Auth: undefined;
+  Permissions: undefined;
   Home: undefined;
+  Profile: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -29,7 +33,9 @@ export function AppNavigator() {
         <Stack.Screen name="Onboarding" component={OnboardingScreen} />
         <Stack.Screen name="InteractiveCanvas" component={InteractiveCanvasScreen} />
         <Stack.Screen name="Auth" component={AuthScreen} />
+        <Stack.Screen name="Permissions" component={PermissionsScreen} />
         <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen name="Profile" component={ProfileScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
