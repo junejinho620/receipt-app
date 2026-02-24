@@ -8,6 +8,8 @@ import { HomeScreen } from '../screens/HomeScreen';
 import { PermissionsScreen } from '../screens/PermissionsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { CalendarScreen } from '../screens/CalendarScreen';
+import { WeeklyReportScreen } from '../screens/WeeklyReportScreen';
+import { WeeklyMontageScreen } from '../screens/WeeklyMontageScreen';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -18,6 +20,8 @@ export type RootStackParamList = {
   Home: undefined;
   Profile: undefined;
   Calendar: undefined;
+  WeeklyReport: undefined;
+  WeeklyMontage: { weekId: string; title: string; range: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -39,6 +43,8 @@ export function AppNavigator() {
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="Calendar" component={CalendarScreen} />
+        <Stack.Screen name="WeeklyReport" component={WeeklyReportScreen} />
+        <Stack.Screen name="WeeklyMontage" component={WeeklyMontageScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

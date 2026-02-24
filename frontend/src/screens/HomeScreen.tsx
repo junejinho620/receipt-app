@@ -295,6 +295,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
         onLogout={() => console.log('Logout Clicked')}
         onNavigateToProfile={() => navigation.navigate('Profile')}
         onNavigateToCalendar={() => navigation.navigate('Calendar')}
+        onNavigateToWeeklyReport={() => navigation.navigate('WeeklyReport')}
       />
     </ScreenWrapper >
   );

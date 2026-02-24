@@ -11,9 +11,10 @@ type MenuModalProps = {
   onLogout: () => void;
   onNavigateToProfile?: () => void;
   onNavigateToCalendar?: () => void;
+  onNavigateToWeeklyReport?: () => void;
 };
 
-export function MenuModal({ visible, onClose, onLogout, onNavigateToProfile, onNavigateToCalendar }: MenuModalProps) {
+export function MenuModal({ visible, onClose, onLogout, onNavigateToProfile, onNavigateToCalendar, onNavigateToWeeklyReport }: MenuModalProps) {
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>
@@ -61,7 +62,13 @@ export function MenuModal({ visible, onClose, onLogout, onNavigateToProfile, onN
                   <Feather name="calendar" size={20} color={colors.textPrimary} style={styles.menuIcon} />
                   <Typography variant="medium" color={colors.textPrimary}>Calendar View</Typography>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.menuItem}>
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={() => {
+                    onClose();
+                    onNavigateToWeeklyReport?.();
+                  }}
+                >
                   <Feather name="bar-chart-2" size={20} color={colors.textPrimary} style={styles.menuIcon} />
                   <Typography variant="medium" color={colors.textPrimary}>Weekly Report</Typography>
                 </TouchableOpacity>
