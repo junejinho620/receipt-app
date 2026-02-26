@@ -211,6 +211,7 @@ export function DataPrivacyScreen({ navigation }: DataPrivacyScreenProps) {
         onNavigateToNotifications={() => { setMenuVisible(false); setTimeout(() => navigation.navigate('Notifications'), 300) }}
         onNavigateToAccount={() => { setMenuVisible(false); setTimeout(() => navigation.navigate('Account'), 300) }}
         onNavigateToDataPrivacy={() => { setMenuVisible(false); }}
+        onNavigateToAboutHelp={() => { setMenuVisible(false); setTimeout(() => navigation.navigate('AboutHelp'), 300); }}
       />
     </SafeAreaView>
   );

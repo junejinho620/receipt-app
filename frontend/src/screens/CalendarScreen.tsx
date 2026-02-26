@@ -269,6 +269,7 @@ export function CalendarScreen({ navigation }: CalendarScreenProps) {
         onNavigateToNotifications={() => navigation.navigate('Notifications')}
         onNavigateToAccount={() => navigation.navigate('Account')}
         onNavigateToDataPrivacy={() => navigation.navigate('DataPrivacy')}
+        onNavigateToAboutHelp={() => navigation.navigate('AboutHelp')}
       />
     </SafeAreaView>
   );

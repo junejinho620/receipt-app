@@ -190,6 +190,7 @@ export function AccountScreen({ navigation }: AccountScreenProps) {
         onNavigateToNotifications={() => navigation.navigate('Notifications')}
         onNavigateToAccount={() => { setMenuVisible(false); }}
         onNavigateToDataPrivacy={() => { setMenuVisible(false); setTimeout(() => navigation.navigate('DataPrivacy'), 300); }}
+        onNavigateToAboutHelp={() => { setMenuVisible(false); setTimeout(() => navigation.navigate('AboutHelp'), 300); }}
       />
     </SafeAreaView>
   );

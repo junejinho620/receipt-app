@@ -16,9 +16,10 @@ type MenuModalProps = {
   onNavigateToNotifications?: () => void;
   onNavigateToAccount?: () => void;
   onNavigateToDataPrivacy?: () => void;
+  onNavigateToAboutHelp?: () => void;
 };
 
-export function MenuModal({ visible, onClose, onLogout, onNavigateToProfile, onNavigateToCalendar, onNavigateToWeeklyReport, onNavigateToNotifications, onNavigateToAccount, onNavigateToDataPrivacy }: MenuModalProps) {
+export function MenuModal({ visible, onClose, onLogout, onNavigateToProfile, onNavigateToCalendar, onNavigateToWeeklyReport, onNavigateToNotifications, onNavigateToAccount, onNavigateToDataPrivacy, onNavigateToAboutHelp }: MenuModalProps) {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const { colors } = useTheme();
   const styles = React.useMemo(() => getStyles(colors), [colors]);
@@ -123,7 +124,13 @@ export function MenuModal({ visible, onClose, onLogout, onNavigateToProfile, onN
                     <Feather name="shield" size={20} color={colors.textPrimary} style={styles.menuIcon} />
                     <Typography variant="medium" color={colors.textPrimary}>Data & Privacy</Typography>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.menuItem}>
+                  <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => {
+                      onClose();
+                      onNavigateToAboutHelp?.();
+                    }}
+                  >
                     <Feather name="help-circle" size={20} color={colors.textPrimary} style={styles.menuIcon} />
                     <Typography variant="medium" color={colors.textPrimary}>About & Help</Typography>
                   </TouchableOpacity>

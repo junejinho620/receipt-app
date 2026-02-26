@@ -171,6 +171,7 @@ export function NotificationsScreen({ navigation }: NotificationsScreenProps) {
         onNavigateToNotifications={() => { setMenuVisible(false); }}
         onNavigateToAccount={() => navigation.navigate('Account')}
         onNavigateToDataPrivacy={() => navigation.navigate('DataPrivacy')}
+        onNavigateToAboutHelp={() => navigation.navigate('AboutHelp')}
       />
     </SafeAreaView>
   );

@@ -13,6 +13,7 @@ import { WeeklyMontageScreen } from '../screens/WeeklyMontageScreen';
 import { NotificationsScreen } from '../screens/NotificationsScreen';
 import { AccountScreen } from '../screens/AccountScreen';
 import { DataPrivacyScreen } from '../screens/DataPrivacyScreen';
+import { AboutHelpScreen } from '../screens/AboutHelpScreen';
 import { useAuth } from '../context/AuthContext';
 
 export type RootStackParamList = {
@@ -28,6 +29,7 @@ export type RootStackParamList = {
   Account: undefined;
   Notifications: undefined;
   DataPrivacy: undefined;
+  AboutHelp: undefined;
   WeeklyMontage: { weekId: string; title: string; range: string };
 };
 
@@ -57,6 +59,7 @@ export function AppNavigator() {
             <Stack.Screen name="Account" component={AccountScreen} />
             <Stack.Screen name="Notifications" component={NotificationsScreen} />
             <Stack.Screen name="DataPrivacy" component={DataPrivacyScreen} />
+            <Stack.Screen name="AboutHelp" component={AboutHelpScreen} />
             <Stack.Screen name="WeeklyMontage" component={WeeklyMontageScreen} />
             <Stack.Screen name="InteractiveCanvas" component={InteractiveCanvasScreen} />
           </>
