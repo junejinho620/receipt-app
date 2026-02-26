@@ -165,6 +165,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
         onLogout={() => console.log('Logout')}
         onNavigateToCalendar={() => navigation.navigate('Calendar')}
         onNavigateToWeeklyReport={() => navigation.navigate('WeeklyReport')}
+        onNavigateToNotifications={() => navigation.navigate('Notifications')}
       />
 
       {/* Achievements Modal */}

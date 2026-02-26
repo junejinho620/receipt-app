@@ -42,7 +42,8 @@
           "photosPermission": "Allow The Receipt to access your photos to attach images to your daily log."
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      "@react-native-community/datetimepicker"
     ]
   }
 }

@@ -13,9 +13,10 @@ type MenuModalProps = {
   onNavigateToProfile?: () => void;
   onNavigateToCalendar?: () => void;
   onNavigateToWeeklyReport?: () => void;
+  onNavigateToNotifications?: () => void;
 };
 
-export function MenuModal({ visible, onClose, onLogout, onNavigateToProfile, onNavigateToCalendar, onNavigateToWeeklyReport }: MenuModalProps) {
+export function MenuModal({ visible, onClose, onLogout, onNavigateToProfile, onNavigateToCalendar, onNavigateToWeeklyReport, onNavigateToNotifications }: MenuModalProps) {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const handleLogoutPress = () => {
@@ -88,7 +89,13 @@ export function MenuModal({ visible, onClose, onLogout, onNavigateToProfile, onN
                   <Typography variant="bold" size="small" color={colors.textSecondary} style={styles.sectionTitle}>
                     SYSTEM
                   </Typography>
-                  <TouchableOpacity style={styles.menuItem}>
+                  <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => {
+                      onClose();
+                      onNavigateToNotifications?.();
+                    }}
+                  >
                     <Feather name="bell" size={20} color={colors.textPrimary} style={styles.menuIcon} />
                     <Typography variant="medium" color={colors.textPrimary}>Notifications</Typography>
                   </TouchableOpacity>

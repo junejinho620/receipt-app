@@ -123,6 +123,7 @@ export function WeeklyReportScreen({ navigation }: WeeklyReportScreenProps) {
         onNavigateToProfile={() => navigation.navigate('Profile')}
         onNavigateToCalendar={() => navigation.navigate('Calendar')}
         onNavigateToWeeklyReport={() => setMenuVisible(false)}
+        onNavigateToNotifications={() => navigation.navigate('Notifications')}
       />
     </SafeAreaView>
   );

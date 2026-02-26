@@ -264,6 +264,7 @@ export function CalendarScreen({ navigation }: CalendarScreenProps) {
         onNavigateToProfile={() => navigation.navigate('Profile')}
         onNavigateToCalendar={() => { setMenuVisible(false); }}
         onNavigateToWeeklyReport={() => navigation.navigate('WeeklyReport')}
+        onNavigateToNotifications={() => navigation.navigate('Notifications')}
       />
     </SafeAreaView>
   );
