@@ -17,24 +17,32 @@ type LogoutConfirmModalProps = {
   visible: boolean;
   onStay: () => void;
   onLeave: () => void;
+  mode?: 'logout' | 'delete';
 };
 
-const DELETION_ITEMS = [
+const getDeletionItems = (mode: 'logout' | 'delete') => mode === 'delete' ? [
+  'Shredding your database records...',
+  'Burning your digital receipts...',
+  'Erasing your memories...',
+  'Wiping the server drives...',
+] : [
   'Shredding your daily receipts...',
   'Dissolving your streak...',
   'Packing away your memories...',
   'Writing you a farewell note...',
 ];
 
-export function LogoutConfirmModal({ visible, onStay, onLeave }: LogoutConfirmModalProps) {
+export function LogoutConfirmModal({ visible, onStay, onLeave, mode = 'logout' }: LogoutConfirmModalProps) {
   const { colors } = useTheme();
   const styles = React.useMemo(() => getStyles(colors), [colors]);
+
+  const itemsList = getDeletionItems(mode);
 
   const progressAnim = useRef(new Animated.Value(0)).current;
   const emojiScale = useRef(new Animated.Value(0)).current;
   const emojiOpacity = useRef(new Animated.Value(0)).current;
   const titleOpacity = useRef(new Animated.Value(0)).current;
-  const itemOpacities = useRef(DELETION_ITEMS.map(() => new Animated.Value(0))).current;
+  const itemOpacities = useRef(itemsList.map(() => new Animated.Value(0))).current;
   const buttonsOpacity = useRef(new Animated.Value(0)).current;
   const [progressDone, setProgressDone] = useState(false);
 
@@ -72,7 +80,7 @@ export function LogoutConfirmModal({ visible, onStay, onLeave }: LogoutConfirmMo
     }, 700);
 
     // 4) Deletion items appear one by one
-    DELETION_ITEMS.forEach((_, index) => {
+    itemsList.forEach((_, index) => {
       setTimeout(() => {
         Animated.timing(itemOpacities[index], {
           toValue: 1,
@@ -89,7 +97,7 @@ export function LogoutConfirmModal({ visible, onStay, onLeave }: LogoutConfirmMo
         duration: 500,
         useNativeDriver: true,
       }).start();
-    }, 900 + DELETION_ITEMS.length * 700 + 200);
+    }, 900 + itemsList.length * 700 + 200);
   }, [visible]);
 
   const progressWidth = progressAnim.interpolate({
@@ -101,23 +109,15 @@ export function LogoutConfirmModal({ visible, onStay, onLeave }: LogoutConfirmMo
     <Modal visible={visible} transparent animationType="fade" statusBarTranslucent>
       <View style={styles.overlay}>
         <View style={styles.card}>
-          {/* Sad Emoji */}
-          <Animated.Text
-            style={[
-              styles.emoji,
-              { opacity: emojiOpacity, transform: [{ scale: emojiScale }] },
-            ]}
-          >
-            😢
+          <Animated.Text style={[styles.emoji, { transform: [{ scale: emojiScale }], opacity: emojiOpacity }]}>
+            🥺
           </Animated.Text>
-
-          {/* Title & Subtitle */}
           <Animated.View style={{ opacity: titleOpacity }}>
             <Typography variant="bold" size="h2" style={styles.title}>
-              We thought you'd{'\n'}stay forever...
+              We thought you'd {'\n'}stay forever...
             </Typography>
             <Typography variant="medium" size="small" color={colors.textSecondary} style={styles.subtitle}>
-              Closing your account
+              {mode === 'delete' ? 'Permanently erasing your account' : 'Closing your account'}
             </Typography>
           </Animated.View>
 
@@ -133,7 +133,7 @@ export function LogoutConfirmModal({ visible, onStay, onLeave }: LogoutConfirmMo
 
           {/* Deletion Items */}
           <View style={styles.itemsContainer}>
-            {DELETION_ITEMS.map((item, index) => (
+            {itemsList.map((item, index) => (
               <Animated.View key={index} style={{ opacity: itemOpacities[index] }}>
                 <Typography
                   variant="regular"
@@ -156,9 +156,9 @@ export function LogoutConfirmModal({ visible, onStay, onLeave }: LogoutConfirmMo
             </TouchableOpacity>
 
             {/* Leave Link */}
-            <TouchableOpacity onPress={onLeave} style={styles.leaveLink}>
+            <TouchableOpacity onPress={onLeave} style={styles.leaveLink} disabled={!progressDone}>
               <Typography variant="regular" color={colors.textTertiary} size="small">
-                Continue with logout
+                {mode === 'delete' ? 'Continue with deletion' : 'Continue with logout'}
               </Typography>
             </TouchableOpacity>
           </Animated.View>

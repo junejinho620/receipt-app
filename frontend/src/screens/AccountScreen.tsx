@@ -189,6 +189,7 @@ export function AccountScreen({ navigation }: AccountScreenProps) {
         onNavigateToWeeklyReport={() => navigation.navigate('WeeklyReport')}
         onNavigateToNotifications={() => navigation.navigate('Notifications')}
         onNavigateToAccount={() => { setMenuVisible(false); }}
+        onNavigateToDataPrivacy={() => { setMenuVisible(false); setTimeout(() => navigation.navigate('DataPrivacy'), 300); }}
       />
     </SafeAreaView>
   );

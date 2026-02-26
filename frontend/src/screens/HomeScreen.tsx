@@ -369,6 +369,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
         onNavigateToWeeklyReport={() => navigation.navigate('WeeklyReport')}
         onNavigateToNotifications={() => navigation.navigate('Notifications')}
         onNavigateToAccount={() => navigation.navigate('Account')}
+        onNavigateToDataPrivacy={() => navigation.navigate('DataPrivacy')}
       />
     </ScreenWrapper >
   );
