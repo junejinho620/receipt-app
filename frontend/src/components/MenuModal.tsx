@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet, Modal, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Typography } from './ui/Typography';
 import { colors } from '../theme/colors';
 import { layout } from '../theme/layout';
+import { LogoutConfirmModal } from './LogoutConfirmModal';
 
 type MenuModalProps = {
   visible: boolean;
@@ -15,100 +16,119 @@ type MenuModalProps = {
 };
 
 export function MenuModal({ visible, onClose, onLogout, onNavigateToProfile, onNavigateToCalendar, onNavigateToWeeklyReport }: MenuModalProps) {
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  const handleLogoutPress = () => {
+    onClose(); // Close the side menu
+    setTimeout(() => setShowLogoutConfirm(true), 300); // Small delay for smooth feel
+  };
+
   return (
-    <Modal visible={visible} transparent animationType="fade">
-      <View style={styles.overlay}>
-        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
-        <View style={styles.drawer}>
-          <SafeAreaView style={styles.safeArea}>
-            <View style={styles.header}>
-              <Typography variant="bold" size="h2" color={colors.textPrimary}>Menu</Typography>
-              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                <Feather name="x" size={24} color={colors.textPrimary} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-
-              {/* Profile */}
-              <View style={styles.section}>
-                <Typography variant="bold" size="small" color={colors.textSecondary} style={styles.sectionTitle}>
-                  IDENTITY
-                </Typography>
-                <TouchableOpacity
-                  style={styles.menuItem}
-                  onPress={() => {
-                    onClose();
-                    onNavigateToProfile?.();
-                  }}
-                >
-                  <Feather name="user" size={20} color={colors.textPrimary} style={styles.menuIcon} />
-                  <Typography variant="medium" color={colors.textPrimary}>Profile & Stats</Typography>
+    <>
+      <Modal visible={visible} transparent animationType="fade">
+        <View style={styles.overlay}>
+          <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
+          <View style={styles.drawer}>
+            <SafeAreaView style={styles.safeArea}>
+              <View style={styles.header}>
+                <Typography variant="bold" size="h2" color={colors.textPrimary}>Menu</Typography>
+                <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                  <Feather name="x" size={24} color={colors.textPrimary} />
                 </TouchableOpacity>
               </View>
 
-              {/* Archive */}
-              <View style={styles.section}>
-                <Typography variant="bold" size="small" color={colors.textSecondary} style={styles.sectionTitle}>
-                  THE LEDGER
-                </Typography>
-                <TouchableOpacity
-                  style={styles.menuItem}
-                  onPress={() => {
-                    onClose();
-                    onNavigateToCalendar?.();
-                  }}
-                >
-                  <Feather name="calendar" size={20} color={colors.textPrimary} style={styles.menuIcon} />
-                  <Typography variant="medium" color={colors.textPrimary}>Calendar View</Typography>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.menuItem}
-                  onPress={() => {
-                    onClose();
-                    onNavigateToWeeklyReport?.();
-                  }}
-                >
-                  <Feather name="bar-chart-2" size={20} color={colors.textPrimary} style={styles.menuIcon} />
-                  <Typography variant="medium" color={colors.textPrimary}>Weekly Report</Typography>
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+
+                {/* Profile */}
+                <View style={styles.section}>
+                  <Typography variant="bold" size="small" color={colors.textSecondary} style={styles.sectionTitle}>
+                    IDENTITY
+                  </Typography>
+                  <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => {
+                      onClose();
+                      onNavigateToProfile?.();
+                    }}
+                  >
+                    <Feather name="user" size={20} color={colors.textPrimary} style={styles.menuIcon} />
+                    <Typography variant="medium" color={colors.textPrimary}>Profile & Stats</Typography>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Archive */}
+                <View style={styles.section}>
+                  <Typography variant="bold" size="small" color={colors.textSecondary} style={styles.sectionTitle}>
+                    THE LEDGER
+                  </Typography>
+                  <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => {
+                      onClose();
+                      onNavigateToCalendar?.();
+                    }}
+                  >
+                    <Feather name="calendar" size={20} color={colors.textPrimary} style={styles.menuIcon} />
+                    <Typography variant="medium" color={colors.textPrimary}>Calendar View</Typography>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => {
+                      onClose();
+                      onNavigateToWeeklyReport?.();
+                    }}
+                  >
+                    <Feather name="bar-chart-2" size={20} color={colors.textPrimary} style={styles.menuIcon} />
+                    <Typography variant="medium" color={colors.textPrimary}>Weekly Report</Typography>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Settings */}
+                <View style={styles.section}>
+                  <Typography variant="bold" size="small" color={colors.textSecondary} style={styles.sectionTitle}>
+                    SYSTEM
+                  </Typography>
+                  <TouchableOpacity style={styles.menuItem}>
+                    <Feather name="bell" size={20} color={colors.textPrimary} style={styles.menuIcon} />
+                    <Typography variant="medium" color={colors.textPrimary}>Notifications</Typography>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.menuItem}>
+                    <Feather name="settings" size={20} color={colors.textPrimary} style={styles.menuIcon} />
+                    <Typography variant="medium" color={colors.textPrimary}>Account Management</Typography>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.menuItem}>
+                    <Feather name="shield" size={20} color={colors.textPrimary} style={styles.menuIcon} />
+                    <Typography variant="medium" color={colors.textPrimary}>Data & Privacy</Typography>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.menuItem}>
+                    <Feather name="help-circle" size={20} color={colors.textPrimary} style={styles.menuIcon} />
+                    <Typography variant="medium" color={colors.textPrimary}>About & Help</Typography>
+                  </TouchableOpacity>
+                </View>
+
+              </ScrollView>
+
+              <View style={styles.footer}>
+                <TouchableOpacity style={styles.logoutButton} onPress={handleLogoutPress}>
+                  <Feather name="log-out" size={20} color={colors.error || '#D9534F'} style={styles.menuIcon} />
+                  <Typography variant="bold" color={colors.error || '#D9534F'}>Settle & Log Out</Typography>
                 </TouchableOpacity>
               </View>
-
-              {/* Settings */}
-              <View style={styles.section}>
-                <Typography variant="bold" size="small" color={colors.textSecondary} style={styles.sectionTitle}>
-                  SYSTEM
-                </Typography>
-                <TouchableOpacity style={styles.menuItem}>
-                  <Feather name="bell" size={20} color={colors.textPrimary} style={styles.menuIcon} />
-                  <Typography variant="medium" color={colors.textPrimary}>Notifications</Typography>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.menuItem}>
-                  <Feather name="settings" size={20} color={colors.textPrimary} style={styles.menuIcon} />
-                  <Typography variant="medium" color={colors.textPrimary}>Account Management</Typography>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.menuItem}>
-                  <Feather name="shield" size={20} color={colors.textPrimary} style={styles.menuIcon} />
-                  <Typography variant="medium" color={colors.textPrimary}>Data & Privacy</Typography>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.menuItem}>
-                  <Feather name="help-circle" size={20} color={colors.textPrimary} style={styles.menuIcon} />
-                  <Typography variant="medium" color={colors.textPrimary}>About & Help</Typography>
-                </TouchableOpacity>
-              </View>
-
-            </ScrollView>
-
-            <View style={styles.footer}>
-              <TouchableOpacity style={styles.logoutButton} onPress={onLogout}>
-                <Feather name="log-out" size={20} color={colors.error || '#D9534F'} style={styles.menuIcon} />
-                <Typography variant="bold" color={colors.error || '#D9534F'}>Settle & Log Out</Typography>
-              </TouchableOpacity>
-            </View>
-          </SafeAreaView>
+            </SafeAreaView>
+          </View>
         </View>
-      </View>
-    </Modal>
+      </Modal>
+
+      {/* Guilt-Trip Logout Confirmation */}
+      <LogoutConfirmModal
+        visible={showLogoutConfirm}
+        onStay={() => setShowLogoutConfirm(false)}
+        onLeave={() => {
+          setShowLogoutConfirm(false);
+          onLogout();
+        }}
+      />
+    </>
   );
 }
 
@@ -179,5 +199,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: layout.spacing.s,
-  }
+  },
 });

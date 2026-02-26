@@ -96,6 +96,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.families.regular,
     fontSize: typography.sizes.body,
     color: colors.textPrimary,
+    flex: 1,
     height: '100%',
   },
   errorText: {

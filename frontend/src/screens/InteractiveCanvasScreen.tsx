@@ -7,6 +7,7 @@ import {
   Platform,
   ScrollView,
   TextInput,
+  Alert,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -18,6 +19,8 @@ import { Typography } from '../components/ui/Typography';
 import { Input } from '../components/ui/Input';
 import { colors } from '../theme/colors';
 import { layout } from '../theme/layout';
+import { useAuth } from '../context/AuthContext';
+import api from '../api/client';
 
 type InteractiveCanvasScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'InteractiveCanvas'>;
@@ -26,12 +29,14 @@ type InteractiveCanvasScreenProps = {
 type InputType = 'Text' | 'Photo';
 
 export function InteractiveCanvasScreen({ navigation }: InteractiveCanvasScreenProps) {
+  const { user } = useAuth();
   const [selectedInput, setSelectedInput] = useState<InputType>('Text');
   const [textContent, setTextContent] = useState('');
   const [logTitle, setLogTitle] = useState('');
   const [location, setLocation] = useState('');
   const [hasPhoto, setHasPhoto] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const hasContent = selectedInput === 'Text'
     ? textContent.trim().length > 0
@@ -41,8 +46,34 @@ export function InteractiveCanvasScreen({ navigation }: InteractiveCanvasScreenP
     setHasPhoto(true);
   };
 
-  const handlePrintReceipt = () => {
-    setShowModal(true);
+  const handlePrintReceipt = async () => {
+    if (!user) {
+      setShowModal(true); // User not logged in? Show the sign up wrapper.
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      await api.post('/api/logs', {
+        userId: user.id,
+        date: today,
+        title: logTitle,
+        location: location,
+        inputType: selectedInput,
+        content: textContent,
+        photoUrl: hasPhoto ? 'dummy-s3-url' : null,
+      });
+
+      Alert.alert('Success!', 'Receipt logged successfully.', [
+        { text: 'OK', onPress: () => navigation.replace('Home') }
+      ]);
+    } catch (error: any) {
+      console.error(error);
+      Alert.alert('Error', error.response?.data?.error || 'Failed to submit receipt.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSignUp = () => {
@@ -177,7 +208,8 @@ export function InteractiveCanvasScreen({ navigation }: InteractiveCanvasScreenP
             <Button
               title="Print Receipt"
               onPress={handlePrintReceipt}
-              disabled={!hasContent}
+              disabled={!hasContent || loading}
+              loading={loading}
               variant="primary"
               style={{ width: '100%' }}
             />

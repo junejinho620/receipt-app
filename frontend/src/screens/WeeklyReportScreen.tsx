@@ -7,20 +7,43 @@ import { Typography } from '../components/ui/Typography';
 import { MenuModal } from '../components/MenuModal';
 import { colors } from '../theme/colors';
 import { layout } from '../theme/layout';
+import { useAuth } from '../context/AuthContext';
+import api from '../api/client';
 
 type WeeklyReportScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'WeeklyReport'>;
 };
 
-// Dummy Data for past weeks
-const PAST_WEEKS = [
-  { id: '3', title: 'Week 3', range: 'Mar 12 ~ Mar 19', totalReceipts: 6, subtitle: 'A highly productive week.' },
-  { id: '2', title: 'Week 2', range: 'Mar 5 ~ Mar 11', totalReceipts: 4, subtitle: 'Settled the books mid-week.' },
-  { id: '1', title: 'Week 1', range: 'Feb 26 ~ Mar 4', totalReceipts: 7, subtitle: 'A perfect streak.' },
-];
-
 export function WeeklyReportScreen({ navigation }: WeeklyReportScreenProps) {
+  const { user, logout } = useAuth();
   const [menuVisible, setMenuVisible] = useState(false);
+  const [reports, setReports] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  React.useEffect(() => {
+    if (!user) return;
+    const fetchReports = async () => {
+      setIsLoading(true);
+      try {
+        const response = await api.get(`/api/reports/${user.id}`);
+        if (response.data.data) {
+          const mapped = response.data.data.map((r: any) => ({
+            id: r.id,
+            title: r.weekLabel,
+            range: r.dateRange,
+            totalReceipts: r.totalReceipts,
+            subtitle: r.subtitle
+          }));
+          setReports(mapped);
+        }
+      } catch (error) {
+        console.error('Failed to fetch reports', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchReports();
+  }, [user]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -54,7 +77,7 @@ export function WeeklyReportScreen({ navigation }: WeeklyReportScreenProps) {
         </View>
 
         <View style={styles.weeksContainer}>
-          {PAST_WEEKS.map((week) => (
+          {reports.map((week) => (
             <TouchableOpacity
               key={week.id}
               style={styles.weekCard}
@@ -93,7 +116,10 @@ export function WeeklyReportScreen({ navigation }: WeeklyReportScreenProps) {
       <MenuModal
         visible={menuVisible}
         onClose={() => setMenuVisible(false)}
-        onLogout={() => console.log('Logout')}
+        onLogout={() => {
+          setMenuVisible(false);
+          logout();
+        }}
         onNavigateToProfile={() => navigation.navigate('Profile')}
         onNavigateToCalendar={() => navigation.navigate('Calendar')}
         onNavigateToWeeklyReport={() => setMenuVisible(false)}

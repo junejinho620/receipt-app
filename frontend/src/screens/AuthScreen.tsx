@@ -6,6 +6,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -16,6 +17,8 @@ import { Typography } from '../components/ui/Typography';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/Button';
 import Svg, { Path } from 'react-native-svg';
+import { useAuth } from '../context/AuthContext';
+import api from '../api/client';
 
 type AuthScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Auth'>;
@@ -24,34 +27,70 @@ type AuthScreenProps = {
 type AuthMode = 'signup' | 'login';
 
 export function AuthScreen({ navigation }: AuthScreenProps) {
+  const { login } = useAuth();
   const [mode, setMode] = useState<AuthMode>('signup');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const isSignUp = mode === 'signup';
   const isFormValid = isSignUp
     ? email.trim() && password.trim() && name.trim()
     : email.trim() && password.trim();
 
-  const handleSubmit = () => {
-    // TODO: Implement actual authentication
-    console.log(`${isSignUp ? 'Sign Up' : 'Login'} with:`, { email, password, name });
-    if (isSignUp) {
-      navigation.replace('Permissions');
-    } else {
-      navigation.replace('Home');
+  const handleSubmit = async () => {
+    if (!isFormValid) return;
+    setLoading(true);
+
+    try {
+      if (isSignUp) {
+        // Sign Up
+        const response = await api.post('/api/auth/signup', {
+          email,
+          username: name,
+          password,
+        });
+        await login(response.data.data, response.data.token);
+      } else {
+        // Login
+        const response = await api.post('/api/auth/login', {
+          email,
+          username: email, // Backend accepts either email or username in these fields
+          password,
+        });
+        await login(response.data.data, response.data.token);
+      }
+      // AppNavigator will automatically unmount this Auth stack and mount Home stack!
+    } catch (error: any) {
+      console.log('Auth error:', error.response?.status);
+      const statusCode = error.response?.status;
+      const message = error.response?.data?.error || 'Please check your credentials and try again.';
+
+      if (statusCode === 409) {
+        // Account already exists — offer to switch to login
+        Alert.alert(
+          'Account Already Exists',
+          message,
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Sign In Instead',
+              onPress: () => setMode('login'),
+            },
+          ]
+        );
+      } else {
+        Alert.alert('Authentication Failed', message);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleSocialAuth = (provider: 'apple' | 'google') => {
     // TODO: Implement social authentication
-    console.log(`Auth with ${provider}`);
-    if (isSignUp) {
-      navigation.replace('Permissions');
-    } else {
-      navigation.replace('Home');
-    }
+    Alert.alert('Upcoming Feature', `Social Auth with ${provider} is not yet implemented.`);
   };
 
   return (
@@ -62,8 +101,8 @@ export function AuthScreen({ navigation }: AuthScreenProps) {
       >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          bounces={false}
         >
           <View style={styles.topContent}>
             {/* Header */}
@@ -125,7 +164,8 @@ export function AuthScreen({ navigation }: AuthScreenProps) {
               <Button
                 title={isSignUp ? 'Get Started' : 'Sign In'}
                 onPress={handleSubmit}
-                disabled={!isFormValid}
+                disabled={!isFormValid || loading}
+                loading={loading}
                 style={styles.submitButton}
               />
             </View>
@@ -201,14 +241,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    flexGrow: 1,
     padding: layout.spacing.l,
     paddingTop: 80,
-    paddingBottom: 80,
-    justifyContent: 'space-between',
+    paddingBottom: 40,
+    minHeight: '100%',
+    justifyContent: 'center',
   },
   topContent: {
-    flex: 1,
+    width: '100%',
   },
   header: {
     marginBottom: layout.spacing.xl,

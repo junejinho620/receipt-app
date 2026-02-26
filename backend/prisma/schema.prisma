@@ -1,0 +1,62 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  username      String   @unique
+  passwordHash  String
+  avatarUrl     String?  
+  selectedTitle String?
+  
+  logs          Log[]
+  weeklyReports WeeklyReport[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Log {
+  id          String   @id @default(uuid())
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+  
+  date        String   // Stored as YYYY-MM-DD
+  title       String?
+  location    String?
+  
+  inputType   String   // "Text" | "Photo" | "Emoji"
+  content     String?
+  photoUrl    String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, date]) // Enforces one log per day per user
+}
+
+model WeeklyReport {
+  id            String   @id @default(uuid())
+  user          User     @relation(fields: [userId], references: [id])
+  userId        String
+  
+  weekLabel     String   // e.g. "Week 1"
+  dateRange     String   // e.g. "Mar 12 ~ Mar 19"
+  totalReceipts Int
+  subtitle      String?
+  
+  startDate     DateTime
+  endDate       DateTime
+  
+  createdAt     DateTime @default(now())
+
+  @@unique([userId, startDate])
+}

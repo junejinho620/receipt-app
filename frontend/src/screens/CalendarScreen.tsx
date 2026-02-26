@@ -7,6 +7,8 @@ import { Typography } from '../components/ui/Typography';
 import { MenuModal } from '../components/MenuModal';
 import { colors } from '../theme/colors';
 import { layout } from '../theme/layout';
+import { useAuth } from '../context/AuthContext';
+import api from '../api/client';
 
 const { width } = Dimensions.get('window');
 
@@ -14,27 +16,58 @@ type CalendarScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Calendar'>;
 };
 
-// Dummy Data representing real app logs. Max one entry per day.
-const MOCK_LOGS: Record<string, { id: string; title: string; time: string; location: string; preview: string }> = {
-  '2026-02-14': { id: '1', title: 'Valentine\'s Dinner', time: '19:00', location: 'Downtown', preview: 'Spent a lovely evening. Felt very relaxed...' },
-  '2026-02-18': { id: '2', title: 'Sunday Deep Work', time: '09:00', location: 'Home Office', preview: 'Crushed a solid 4 hours of focus time. Settled the books.' },
-  '2026-02-23': { id: '3', title: 'Morning Coffee', time: '07:30', location: 'Local Cafe', preview: 'Reflecting on the week and preparing my journal.' },
-};
-
 const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const FULL_WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export function CalendarScreen({ navigation }: CalendarScreenProps) {
+  const { user, logout } = useAuth();
   const [menuVisible, setMenuVisible] = useState(false);
 
   const today = new Date();
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
 
-  // Set default selected date string for today
   const defaultDateStr = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
   const [selectedDate, setSelectedDate] = useState<string>(defaultDateStr);
+  const [logs, setLogs] = useState<Record<string, any>>({});
+  const [isLoading, setIsLoading] = useState(false);
+
+  React.useEffect(() => {
+    if (!user) return;
+    const fetchMonthlyLogs = async () => {
+      setIsLoading(true);
+      try {
+        const yyyy = currentYear.toString();
+        const mm = (currentMonth + 1).toString().padStart(2, '0');
+        const response = await api.get(`/api/logs/${user.id}/month/${yyyy}-${mm}`);
+
+        if (response.data.data) {
+          const fetchedLogs = response.data.data;
+          const logsDict: Record<string, any> = {};
+          fetchedLogs.forEach((log: any) => {
+            let dateStr = log.date;
+            if (dateStr.includes('T')) {
+              dateStr = dateStr.split('T')[0];
+            }
+            logsDict[dateStr] = {
+              id: log.id,
+              title: log.title || 'Untitled Book',
+              time: new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              location: log.location || 'Unknown Location',
+              preview: log.inputType === 'Text' ? log.content : `[${log.inputType} Entry]`,
+            };
+          });
+          setLogs(logsDict);
+        }
+      } catch (err) {
+        console.error('Failed to fetch monthly calendar dots:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchMonthlyLogs();
+  }, [currentYear, currentMonth, user]);
 
   const days = useMemo(() => {
     const arr = [];
@@ -76,9 +109,10 @@ export function CalendarScreen({ navigation }: CalendarScreenProps) {
   const resetToToday = () => {
     setCurrentYear(today.getFullYear());
     setCurrentMonth(today.getMonth());
+    setSelectedDate(defaultDateStr);
   };
 
-  const selectedLog = selectedDate ? MOCK_LOGS[selectedDate] : null;
+  const selectedLog = selectedDate ? logs[selectedDate] : null;
 
   // Format the detailed Header String (e.g., "Tuesday, 23 January 2023")
   let displayFullDate = '';
@@ -139,7 +173,7 @@ export function CalendarScreen({ navigation }: CalendarScreenProps) {
             }
 
             const isSelected = selectedDate === item.dateString;
-            const hasLog = !!MOCK_LOGS[item.dateString];
+            const hasLog = !!logs[item.dateString];
 
             return (
               <TouchableOpacity
@@ -223,9 +257,13 @@ export function CalendarScreen({ navigation }: CalendarScreenProps) {
       <MenuModal
         visible={menuVisible}
         onClose={() => setMenuVisible(false)}
-        onLogout={() => console.log('Logout')}
+        onLogout={() => {
+          setMenuVisible(false);
+          logout();
+        }}
         onNavigateToProfile={() => navigation.navigate('Profile')}
         onNavigateToCalendar={() => { setMenuVisible(false); }}
+        onNavigateToWeeklyReport={() => navigation.navigate('WeeklyReport')}
       />
     </SafeAreaView>
   );

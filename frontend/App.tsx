@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { AppNavigator } from './src/navigation/AppNavigator';
+import { AuthProvider } from './src/context/AuthContext';
 import { customFonts } from './src/theme/typography';
 
 // Keep the splash screen visible while we fetch resources
@@ -25,7 +26,9 @@ export default function App() {
 
   return (
     <SafeAreaProvider onLayout={onLayoutRootView}>
-      <AppNavigator />
+      <AuthProvider>
+        <AppNavigator />
+      </AuthProvider>
       <StatusBar style="light" />
     </SafeAreaProvider>
   );

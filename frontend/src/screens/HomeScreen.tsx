@@ -7,6 +7,7 @@ import {
   ScrollView,
   Platform,
   Image,
+  Alert,
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { colors } from '../theme/colors';
@@ -19,6 +20,8 @@ import { Feather } from '@expo/vector-icons';
 import { MenuModal } from '../components/MenuModal';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { useAuth } from '../context/AuthContext';
+import api from '../api/client';
 
 type HomeScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Home'>;
@@ -42,6 +45,7 @@ const EMOJI_OPTIONS = [
 ];
 
 export function HomeScreen({ navigation }: HomeScreenProps) {
+  const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<activeTabType>('Journal');
   const [menuVisible, setMenuVisible] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<MediaType>('Photo');
@@ -52,6 +56,10 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
 
   const [logTitle, setLogTitle] = useState('');
   const [location, setLocation] = useState('');
+
+  const [existingLog, setExistingLog] = useState<any>(null);
+  const [isLoadingLog, setIsLoadingLog] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   const characterCount = textContent.length;
   const hasContent = selectedInput === 'Text'
@@ -64,6 +72,58 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
     month: 'long',
     day: 'numeric',
   });
+  const isoDateString = today.toISOString().split('T')[0];
+
+  React.useEffect(() => {
+    if (!user) return;
+    const fetchTodayLog = async () => {
+      try {
+        const response = await api.get(`/api/logs/${user.id}/${isoDateString}`);
+        if (response.data.data) {
+          const log = response.data.data;
+          setExistingLog(log);
+          setLogTitle(log.title || '');
+          setLocation(log.location || '');
+          if (log.inputType === 'Emoji') {
+            setSelectedInput('Emoji');
+            setSelectedEmojis(log.content ? log.content.split(',') : []);
+          } else {
+            setSelectedInput('Text');
+            setTextContent(log.content || '');
+          }
+        }
+      } catch (err) {
+        // No log found for today - that's fine
+        console.log('No log for today yet');
+      } finally {
+        setIsLoadingLog(false);
+      }
+    };
+    fetchTodayLog();
+  }, [user, isoDateString]);
+
+  const handleSubmit = async () => {
+    if (!user) return;
+    setIsSaving(true);
+    try {
+      const response = await api.post('/api/logs', {
+        userId: user.id,
+        date: isoDateString,
+        title: logTitle,
+        location: location,
+        inputType: selectedInput,
+        content: selectedInput === 'Text' ? textContent : selectedEmojis.join(','),
+        photoUrl: null, // Photo upload not implemented yet
+      });
+      setExistingLog(response.data.data);
+      Alert.alert('Success!', 'Your entry for today has been locked.');
+    } catch (err: any) {
+      console.error(err);
+      Alert.alert('Error', err.response?.data?.error || 'Failed to settle book. You might have already submitted today.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleEmojiPress = (emoji: string) => {
     if (selectedEmojis.includes(emoji)) {
@@ -133,6 +193,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
                     <TouchableOpacity
                       key={type}
                       onPress={() => setSelectedInput(type)}
+                      disabled={!!existingLog}
                       style={[
                         styles.modeChip,
                         selectedInput === type && styles.modeChipActive
@@ -159,6 +220,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
                       placeholderTextColor={colors.textTertiary}
                       value={logTitle}
                       onChangeText={setLogTitle}
+                      editable={!existingLog}
                     />
                     <View style={styles.locationContainer}>
                       <Feather name="map-pin" size={14} color={colors.textTertiary} />
@@ -168,6 +230,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
                         placeholderTextColor={colors.textTertiary}
                         value={location}
                         onChangeText={setLocation}
+                        editable={!existingLog}
                       />
                     </View>
                   </View>
@@ -182,6 +245,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
                         multiline
                         value={textContent}
                         onChangeText={setTextContent}
+                        editable={!existingLog}
                       />
                       <View style={styles.inputFooter}>
                         <Typography variant="mono" size="caption" color={colors.textTertiary}>
@@ -194,6 +258,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
                       {EMOJI_OPTIONS.map((emoji, index) => (
                         <TouchableOpacity
                           key={index}
+                          disabled={!!existingLog}
                           style={[
                             styles.emojiButton,
                             selectedEmojis.includes(emoji) && styles.emojiButtonSelected,
@@ -276,9 +341,10 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
         {/* Submit */}
         <Animated.View entering={FadeInDown.delay(400).springify()} style={styles.footer}>
           <Button
-            title="Settle the Books"
-            onPress={() => { }}
-            disabled={!hasContent}
+            title={existingLog ? "Entry Locked" : "Settle the Books"}
+            onPress={handleSubmit}
+            disabled={!hasContent || !!existingLog || isSaving || isLoadingLog}
+            loading={isSaving}
             variant="primary"
             style={styles.submitButton}
           />
@@ -292,7 +358,10 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
       <MenuModal
         visible={menuVisible}
         onClose={() => setMenuVisible(false)}
-        onLogout={() => console.log('Logout Clicked')}
+        onLogout={() => {
+          setMenuVisible(false);
+          logout();
+        }}
         onNavigateToProfile={() => navigation.navigate('Profile')}
         onNavigateToCalendar={() => navigation.navigate('Calendar')}
         onNavigateToWeeklyReport={() => navigation.navigate('WeeklyReport')}

@@ -7,6 +7,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { Typography } from '../components/ui/Typography';
 import { colors } from '../theme/colors';
 import { layout } from '../theme/layout';
+import api from '../api/client';
 
 const { width, height } = Dimensions.get('window');
 
@@ -15,21 +16,44 @@ type WeeklyMontageScreenProps = {
   route: RouteProp<RootStackParamList, 'WeeklyMontage'>;
 };
 
-// Dummy daily data
-const DAYS = [
-  { id: '1', title: 'Monday Focus', type: 'Text', preview: 'Deep work session in the morning.', location: 'Home Office' },
-  { id: '2', title: 'Tuesday Coffee', type: 'Text', preview: 'Met with old friends.', location: 'Cafe Central' },
-  { id: '3', title: 'Wednesday Hustle', type: 'Text', preview: 'Shipped a new feature.', location: 'The Studio' },
-  { id: '4', title: 'Thursday Rest', type: 'Emoji', preview: '🧘', location: 'Living Room' },
-  { id: '5', title: 'Friday Night', type: 'Text', preview: 'Dinner out.', location: 'Downtown' },
-  { id: '6', title: 'Saturday Hike', type: 'Text', preview: 'A beautiful morning up in the hills.', location: 'State Park' },
-  { id: '7', title: 'Sunday Prep', type: 'Text', preview: 'Settled the books and prepped for Monday.', location: 'Home Library' },
-];
+// Weekly montage data types
+type MontageDay = {
+  id: string;
+  title: string;
+  type: string;
+  preview: string;
+  location: string;
+};
 
 export function WeeklyMontageScreen({ navigation, route }: WeeklyMontageScreenProps) {
   const { title, range } = route.params;
   const scrollViewRef = useRef<ScrollView>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [days, setDays] = useState<MontageDay[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  React.useEffect(() => {
+    const fetchMontage = async () => {
+      try {
+        const response = await api.get(`/api/reports/${route.params.weekId}/montage`);
+        if (response.data.data) {
+          const formattedDays = response.data.data.map((log: any) => ({
+            id: log.id,
+            title: new Date(log.date).toLocaleDateString('en-US', { weekday: 'long' }),
+            type: log.inputType,
+            preview: log.inputType === 'Text' ? log.content : (log.inputType === 'Emoji' ? log.content : '[Photo]'),
+            location: log.location || 'Unknown'
+          }));
+          setDays(formattedDays);
+        }
+      } catch (error) {
+        console.error('Montage Fetch Error:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchMontage();
+  }, [route.params.weekId]);
 
   const handleScroll = (event: any) => {
     const x = event.nativeEvent.contentOffset.x;
@@ -57,7 +81,7 @@ export function WeeklyMontageScreen({ navigation, route }: WeeklyMontageScreenPr
 
         {/* Progress Bars */}
         <View style={styles.progressContainer}>
-          {[...DAYS, { id: 'summary' }].map((_, index) => (
+          {[...days, { id: 'summary' }].map((_, index) => (
             <View key={index} style={[styles.progressBar, index <= currentIndex && styles.progressBarActive]} />
           ))}
         </View>
@@ -72,8 +96,8 @@ export function WeeklyMontageScreen({ navigation, route }: WeeklyMontageScreenPr
         scrollEventThrottle={16}
         style={styles.scrollView}
       >
-        {/* 7 Daily Slides */}
-        {DAYS.map((day) => (
+        {/* Daily Slides */}
+        {days.map((day) => (
           <View key={day.id} style={styles.slide}>
             <View style={styles.card}>
               <Typography variant="mono" size="small" color={colors.textTertiary} style={{ marginBottom: 16 }}>
@@ -109,7 +133,7 @@ export function WeeklyMontageScreen({ navigation, route }: WeeklyMontageScreenPr
             <View style={styles.dashedLine} />
 
             <ScrollView showsVerticalScrollIndicator={false} style={styles.summaryList}>
-              {DAYS.map((day) => (
+              {days.map((day) => (
                 <View key={day.id} style={styles.summaryItemRow}>
                   <Typography variant="mono" size="caption" color={colors.textSecondary} style={{ width: 40 }}>
                     {day.title.split(' ')[0].slice(0, 3).toUpperCase()}

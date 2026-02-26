@@ -38,7 +38,7 @@ export function OnboardingScreen({ navigation }: OnboardingScreenProps) {
   };
 
   const handleSkip = () => {
-    navigation.replace('InteractiveCanvas');
+    navigation.replace('Auth');
   };
 
   const handleNext = () => {
