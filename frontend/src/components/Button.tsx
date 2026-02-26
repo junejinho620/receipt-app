@@ -1,6 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, StyleSheet, ViewStyle, Platform } from 'react-native';
-import { colors } from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
 import { Typography } from './ui/Typography';
 import { layout } from '../theme/layout';
 
@@ -23,6 +23,7 @@ export function Button({
   disabled = false,
   loading = false
 }: ButtonProps) {
+  const { colors } = useTheme();
 
   const getBackgroundColor = () => {
     if (disabled) return colors.surfaceHighlight;
@@ -55,6 +56,8 @@ export function Button({
     }
   };
 
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
+
   return (
     <TouchableOpacity
       style={[
@@ -84,7 +87,7 @@ export function Button({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     paddingHorizontal: layout.spacing.xl,
     borderRadius: 999, // Pill shape

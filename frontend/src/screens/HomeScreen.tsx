@@ -10,7 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { colors } from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
 import { layout } from '../theme/layout';
 import { ScreenWrapper } from '../components/ui/ScreenWrapper';
 import { Typography } from '../components/ui/Typography';
@@ -47,6 +47,8 @@ const EMOJI_OPTIONS = [
 export function HomeScreen({ navigation }: HomeScreenProps) {
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<activeTabType>('Journal');
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
   const [menuVisible, setMenuVisible] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<MediaType>('Photo');
   const [selectedInput, setSelectedInput] = useState<InputType>('Text');
@@ -366,12 +368,13 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
         onNavigateToCalendar={() => navigation.navigate('Calendar')}
         onNavigateToWeeklyReport={() => navigation.navigate('WeeklyReport')}
         onNavigateToNotifications={() => navigation.navigate('Notifications')}
+        onNavigateToAccount={() => navigation.navigate('Account')}
       />
     </ScreenWrapper >
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   scrollView: {
     flex: 1,
   },
@@ -507,7 +510,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.5)',
+    backgroundColor: colors.surfaceHighlight,
     borderRadius: layout.borderRadius.m,
     borderStyle: 'dashed',
   },

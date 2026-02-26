@@ -5,7 +5,7 @@ import { RouteProp } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { Typography } from '../components/ui/Typography';
-import { colors } from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
 import { layout } from '../theme/layout';
 import api from '../api/client';
 
@@ -29,6 +29,8 @@ export function WeeklyMontageScreen({ navigation, route }: WeeklyMontageScreenPr
   const { title, range } = route.params;
   const scrollViewRef = useRef<ScrollView>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
   const [days, setDays] = useState<MontageDay[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -168,7 +170,7 @@ export function WeeklyMontageScreen({ navigation, route }: WeeklyMontageScreenPr
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#0A0A14', // Immersive cinema dark background

@@ -11,6 +11,7 @@ import { CalendarScreen } from '../screens/CalendarScreen';
 import { WeeklyReportScreen } from '../screens/WeeklyReportScreen';
 import { WeeklyMontageScreen } from '../screens/WeeklyMontageScreen';
 import { NotificationsScreen } from '../screens/NotificationsScreen';
+import { AccountScreen } from '../screens/AccountScreen';
 import { useAuth } from '../context/AuthContext';
 
 export type RootStackParamList = {
@@ -23,6 +24,7 @@ export type RootStackParamList = {
   Profile: undefined;
   Calendar: undefined;
   WeeklyReport: undefined;
+  Account: undefined;
   Notifications: undefined;
   WeeklyMontage: { weekId: string; title: string; range: string };
 };
@@ -50,6 +52,7 @@ export function AppNavigator() {
             <Stack.Screen name="Profile" component={ProfileScreen} />
             <Stack.Screen name="Calendar" component={CalendarScreen} />
             <Stack.Screen name="WeeklyReport" component={WeeklyReportScreen} />
+            <Stack.Screen name="Account" component={AccountScreen} />
             <Stack.Screen name="Notifications" component={NotificationsScreen} />
             <Stack.Screen name="WeeklyMontage" component={WeeklyMontageScreen} />
             <Stack.Screen name="InteractiveCanvas" component={InteractiveCanvasScreen} />

@@ -5,7 +5,7 @@ import { Feather } from '@expo/vector-icons';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { Typography } from '../components/ui/Typography';
 import { MenuModal } from '../components/MenuModal';
-import { colors } from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
 import { layout } from '../theme/layout';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
@@ -17,6 +17,8 @@ type WeeklyReportScreenProps = {
 export function WeeklyReportScreen({ navigation }: WeeklyReportScreenProps) {
   const { user, logout } = useAuth();
   const [menuVisible, setMenuVisible] = useState(false);
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
   const [reports, setReports] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -124,12 +126,13 @@ export function WeeklyReportScreen({ navigation }: WeeklyReportScreenProps) {
         onNavigateToCalendar={() => navigation.navigate('Calendar')}
         onNavigateToWeeklyReport={() => setMenuVisible(false)}
         onNavigateToNotifications={() => navigation.navigate('Notifications')}
+        onNavigateToAccount={() => navigation.navigate('Account')}
       />
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: colors.background,

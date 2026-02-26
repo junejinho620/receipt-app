@@ -6,7 +6,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { Typography } from '../components/ui/Typography';
 import { MenuModal } from '../components/MenuModal';
 import { CustomSwitch } from '../components/ui/CustomSwitch';
-import { colors } from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
 import { layout } from '../theme/layout';
 
 type NotificationsScreenProps = {
@@ -25,6 +25,8 @@ for (let h = 0; h < 24; h++) {
 
 export function NotificationsScreen({ navigation }: NotificationsScreenProps) {
   const [menuVisible, setMenuVisible] = useState(false);
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
 
   // Settings state
   const [dailyRitual, setDailyRitual] = useState(true);
@@ -167,12 +169,13 @@ export function NotificationsScreen({ navigation }: NotificationsScreenProps) {
         onNavigateToCalendar={() => navigation.navigate('Calendar')}
         onNavigateToWeeklyReport={() => navigation.navigate('WeeklyReport')}
         onNavigateToNotifications={() => { setMenuVisible(false); }}
+        onNavigateToAccount={() => navigation.navigate('Account')}
       />
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: colors.background,

@@ -8,7 +8,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Typography } from './ui/Typography';
-import { colors } from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
 import { layout } from '../theme/layout';
 
 const { width } = Dimensions.get('window');
@@ -27,6 +27,9 @@ const DELETION_ITEMS = [
 ];
 
 export function LogoutConfirmModal({ visible, onStay, onLeave }: LogoutConfirmModalProps) {
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
+
   const progressAnim = useRef(new Animated.Value(0)).current;
   const emojiScale = useRef(new Animated.Value(0)).current;
   const emojiOpacity = useRef(new Animated.Value(0)).current;
@@ -146,9 +149,8 @@ export function LogoutConfirmModal({ visible, onStay, onLeave }: LogoutConfirmMo
 
           {/* Buttons */}
           <Animated.View style={[styles.buttonsContainer, { opacity: buttonsOpacity }]}>
-            {/* Stay Button */}
             <TouchableOpacity style={styles.stayButton} onPress={onStay} activeOpacity={0.85}>
-              <Typography variant="bold" color="#FFFFFF" size="body">
+              <Typography variant="bold" color={colors.surface} size="body">
                 Actually, I'll stay 🤍
               </Typography>
             </TouchableOpacity>
@@ -166,16 +168,16 @@ export function LogoutConfirmModal({ visible, onStay, onLeave }: LogoutConfirmMo
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    backgroundColor: colors.overlay,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: layout.spacing.l,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 24,
     paddingHorizontal: 28,
     paddingVertical: 36,
@@ -196,7 +198,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 32,
     marginBottom: 6,
-    color: '#1A1A1A',
+    color: colors.textPrimary,
   },
   subtitle: {
     textAlign: 'center',
@@ -205,19 +207,19 @@ const styles = StyleSheet.create({
   progressTrack: {
     width: '100%',
     height: 6,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: colors.surfaceHighlight,
     borderRadius: 99,
     overflow: 'hidden',
     marginBottom: 20,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#F5C842',
+    backgroundColor: colors.primary,
     borderRadius: 99,
   },
   itemsContainer: {
     width: '100%',
-    backgroundColor: '#FAFAFA',
+    backgroundColor: colors.background,
     borderRadius: 12,
     padding: 16,
     marginBottom: 28,
@@ -234,7 +236,7 @@ const styles = StyleSheet.create({
   },
   stayButton: {
     width: '100%',
-    backgroundColor: '#1A1A1A',
+    backgroundColor: colors.primary,
     borderRadius: 999,
     paddingVertical: 16,
     alignItems: 'center',

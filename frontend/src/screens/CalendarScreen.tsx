@@ -5,7 +5,7 @@ import { Feather } from '@expo/vector-icons';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { Typography } from '../components/ui/Typography';
 import { MenuModal } from '../components/MenuModal';
-import { colors } from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
 import { layout } from '../theme/layout';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
@@ -23,6 +23,8 @@ const FULL_WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', '
 export function CalendarScreen({ navigation }: CalendarScreenProps) {
   const { user, logout } = useAuth();
   const [menuVisible, setMenuVisible] = useState(false);
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
 
   const today = new Date();
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
@@ -265,12 +267,13 @@ export function CalendarScreen({ navigation }: CalendarScreenProps) {
         onNavigateToCalendar={() => { setMenuVisible(false); }}
         onNavigateToWeeklyReport={() => navigation.navigate('WeeklyReport')}
         onNavigateToNotifications={() => navigation.navigate('Notifications')}
+        onNavigateToAccount={() => navigation.navigate('Account')}
       />
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: colors.background,

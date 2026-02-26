@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, ViewStyle, Pressable } from 'react-native';
-import { colors } from '../../theme/colors';
+import { useTheme } from '../../context/ThemeContext';
 import { layout } from '../../theme/layout';
 
 interface CardProps {
@@ -16,6 +16,9 @@ export const Card: React.FC<CardProps> = ({
   onPress,
   variant = 'default'
 }) => {
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
+
   const Container = onPress ? Pressable : View;
 
   const getStyle = () => {
@@ -40,7 +43,7 @@ export const Card: React.FC<CardProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     borderRadius: 24, // Softer, larger radius
     padding: layout.spacing.m,

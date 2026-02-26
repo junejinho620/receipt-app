@@ -8,7 +8,7 @@ import { Typography } from '../components/ui/Typography';
 import { Button } from '../components/Button';
 import { Card } from '../components/ui/Card';
 import { MenuModal } from '../components/MenuModal';
-import { colors } from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
 import { layout } from '../theme/layout';
 
 const AVAILABLE_TITLES = [
@@ -24,6 +24,8 @@ type ProfileScreenProps = {
 
 export function ProfileScreen({ navigation }: ProfileScreenProps) {
   const [menuVisible, setMenuVisible] = useState(false);
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [selectedTitle, setSelectedTitle] = useState(AVAILABLE_TITLES[0]);
   const [showAchievements, setShowAchievements] = useState(false);
@@ -166,6 +168,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
         onNavigateToCalendar={() => navigation.navigate('Calendar')}
         onNavigateToWeeklyReport={() => navigation.navigate('WeeklyReport')}
         onNavigateToNotifications={() => navigation.navigate('Notifications')}
+        onNavigateToAccount={() => navigation.navigate('Account')}
       />
 
       {/* Achievements Modal */}
@@ -209,7 +212,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: colors.background,

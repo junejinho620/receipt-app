@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, Modal, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Typography } from './ui/Typography';
-import { colors } from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
 import { layout } from '../theme/layout';
 import { LogoutConfirmModal } from './LogoutConfirmModal';
 
@@ -14,10 +14,13 @@ type MenuModalProps = {
   onNavigateToCalendar?: () => void;
   onNavigateToWeeklyReport?: () => void;
   onNavigateToNotifications?: () => void;
+  onNavigateToAccount?: () => void;
 };
 
-export function MenuModal({ visible, onClose, onLogout, onNavigateToProfile, onNavigateToCalendar, onNavigateToWeeklyReport, onNavigateToNotifications }: MenuModalProps) {
+export function MenuModal({ visible, onClose, onLogout, onNavigateToProfile, onNavigateToCalendar, onNavigateToWeeklyReport, onNavigateToNotifications, onNavigateToAccount }: MenuModalProps) {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
 
   const handleLogoutPress = () => {
     onClose(); // Close the side menu
@@ -99,7 +102,13 @@ export function MenuModal({ visible, onClose, onLogout, onNavigateToProfile, onN
                     <Feather name="bell" size={20} color={colors.textPrimary} style={styles.menuIcon} />
                     <Typography variant="medium" color={colors.textPrimary}>Notifications</Typography>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.menuItem}>
+                  <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => {
+                      onClose();
+                      onNavigateToAccount?.();
+                    }}
+                  >
                     <Feather name="settings" size={20} color={colors.textPrimary} style={styles.menuIcon} />
                     <Typography variant="medium" color={colors.textPrimary}>Account Management</Typography>
                   </TouchableOpacity>
@@ -139,7 +148,7 @@ export function MenuModal({ visible, onClose, onLogout, onNavigateToProfile, onN
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   overlay: {
     flex: 1,
     flexDirection: 'row',
@@ -152,7 +161,7 @@ const styles = StyleSheet.create({
     width: '80%',
     maxWidth: 320,
     height: '100%',
-    backgroundColor: '#F8F6F4',
+    backgroundColor: colors.surface,
     shadowColor: '#000',
     shadowOffset: { width: 4, height: 0 },
     shadowOpacity: 0.1,
