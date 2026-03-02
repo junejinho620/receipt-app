@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, SafeAreaView, Dimensions, ScrollView, Share } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, SafeAreaView, Dimensions, ScrollView, Share, Image } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
@@ -23,6 +23,10 @@ type MontageDay = {
   type: string;
   preview: string;
   location: string;
+  musicTitle?: string | null;
+  musicArtist?: string | null;
+  musicArtwork?: string | null;
+  photoUrl?: string | null;
 };
 
 export function WeeklyMontageScreen({ navigation, route }: WeeklyMontageScreenProps) {
@@ -39,12 +43,16 @@ export function WeeklyMontageScreen({ navigation, route }: WeeklyMontageScreenPr
       try {
         const response = await api.get(`/api/reports/${route.params.weekId}/montage`);
         if (response.data.data) {
-          const formattedDays = response.data.data.map((log: any) => ({
+          const formattedDays = response.data.data.logs.map((log: any) => ({
             id: log.id,
             title: new Date(log.date).toLocaleDateString('en-US', { weekday: 'long' }),
             type: log.inputType,
             preview: log.inputType === 'Text' ? log.content : (log.inputType === 'Emoji' ? log.content : '[Photo]'),
-            location: log.location || 'Unknown'
+            location: log.location || 'Unknown',
+            musicTitle: log.musicTitle || null,
+            musicArtist: log.musicArtist || null,
+            musicArtwork: log.musicArtwork || null,
+            photoUrl: log.photoUrl || null,
           }));
           setDays(formattedDays);
         }
@@ -120,6 +128,30 @@ export function WeeklyMontageScreen({ navigation, route }: WeeklyMontageScreenPr
                   {day.location}
                 </Typography>
               </View>
+
+              {/* Music attachment strip */}
+              {day.musicTitle && (
+                <View style={styles.musicStrip}>
+                  {day.musicArtwork ? (
+                    <Image source={{ uri: day.musicArtwork }} style={styles.musicArtwork} />
+                  ) : (
+                    <View style={[styles.musicArtwork, styles.musicArtworkFallback]}>
+                      <Feather name="music" size={16} color={colors.primary} />
+                    </View>
+                  )}
+                  <View style={styles.musicMeta}>
+                    <Typography variant="bold" size="small" color={colors.textPrimary} numberOfLines={1}>
+                      {day.musicTitle}
+                    </Typography>
+                    {day.musicArtist ? (
+                      <Typography variant="regular" size="caption" color={colors.textSecondary} numberOfLines={1}>
+                        {day.musicArtist}
+                      </Typography>
+                    ) : null}
+                  </View>
+                  <Feather name="headphones" size={14} color={colors.textTertiary} />
+                </View>
+              )}
             </View>
           </View>
         ))}
@@ -271,5 +303,28 @@ const getStyles = (colors: any) => StyleSheet.create({
     padding: layout.spacing.m,
     borderRadius: layout.borderRadius.m,
     marginTop: layout.spacing.l,
-  }
+  },
+  musicStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: layout.spacing.m,
+    paddingTop: layout.spacing.m,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  musicArtwork: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  musicArtworkFallback: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  musicMeta: {
+    flex: 1,
+    marginLeft: 10,
+    marginRight: 8,
+  },
 });

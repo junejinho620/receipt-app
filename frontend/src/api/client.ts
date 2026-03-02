@@ -21,4 +21,27 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+export const uploadFile = async (localUri: string): Promise<string> => {
+  const formData = new FormData();
+  // React Native FormData expects this specific shape for files
+  const filename = localUri.split('/').pop() || 'upload.jpg';
+  // Infer type from extension, default to jpeg
+  const match = /\.(\w+)$/.exec(filename);
+  const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+  formData.append('file', {
+    uri: localUri,
+    name: filename,
+    type,
+  } as any);
+
+  const response = await api.post('/api/upload', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+
+  return response.data.url;
+};
+
 export default api;

@@ -43,7 +43,7 @@ export function DataPrivacyScreen({ navigation }: DataPrivacyScreenProps) {
 
   const fetchStats = async () => {
     try {
-      const response = await api.get('/auth/me/stats');
+      const response = await api.get('/api/users/profile/stats');
       if (response.data.success) {
         setStats(response.data.data);
       }
@@ -69,10 +69,14 @@ export function DataPrivacyScreen({ navigation }: DataPrivacyScreenProps) {
   };
 
   const proceedWithDeletion = async () => {
-    setShowDeleteModal(false);
-    // Here we'd call the API to actually delete the user's data
-    // await api.delete('/auth/me');
-    await logout();
+    try {
+      setShowDeleteModal(false);
+      await api.delete('/api/users/profile');
+      await logout();
+    } catch (e) {
+      console.error('Failed to shred account:', e);
+      Alert.alert('Error', 'Could not delete account. Please try again.');
+    }
   };
 
   return (

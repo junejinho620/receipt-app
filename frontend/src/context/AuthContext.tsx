@@ -28,8 +28,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const bootstrapAsync = async () => {
       try {
-        const token = await AsyncStorage.getItem('userToken');
-        const userDataStr = await AsyncStorage.getItem('userData');
+        // Enforce a minimum 2s delay so the custom SplashScreen animation can finish playing
+        const [token, userDataStr] = await Promise.all([
+          AsyncStorage.getItem('userToken'),
+          AsyncStorage.getItem('userData'),
+          new Promise(resolve => setTimeout(resolve, 2000))
+        ]);
 
         if (token && userDataStr) {
           const userData = JSON.parse(userDataStr);

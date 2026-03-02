@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -8,6 +8,7 @@ import { MenuModal } from '../components/MenuModal';
 import { useTheme } from '../context/ThemeContext';
 import { layout } from '../theme/layout';
 import { useAuth } from '../context/AuthContext';
+import api from '../api/client';
 
 type AccountScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Account'>;
@@ -19,13 +20,42 @@ export function AccountScreen({ navigation }: AccountScreenProps) {
   const { themeName, colors, setThemeName, appearance, setAppearance } = useTheme();
   const styles = getStyles(colors);
 
-
-
   // Passport (Identity) State
   const [isEditing, setIsEditing] = useState(false);
-  const [email, setEmail] = useState(user?.email || 'user@example.com');
-  const [password, setPassword] = useState('password123'); // Faux password for UI
-  // const [themeMode, setThemeMode] = useState<'Light' | 'Dark' | 'System'>('System'); // Removed as appearance from useTheme is used
+  const [isSaving, setIsSaving] = useState(false);
+  const [email, setEmail] = useState(user?.email || '');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+
+  const handleSave = async () => {
+    if (!email.trim()) {
+      Alert.alert('Validation Error', 'Email cannot be empty.');
+      return;
+    }
+    // If user typed a new password, they must also provide current password
+    if (newPassword && !currentPassword) {
+      Alert.alert('Validation Error', 'Please enter your current password to set a new one.');
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const payload: any = { email: email.trim() };
+      if (newPassword) {
+        payload.currentPassword = currentPassword;
+        payload.newPassword = newPassword;
+      }
+      await api.put('/api/users/profile', payload);
+      Alert.alert('Saved!', 'Your credentials have been updated.');
+      setIsEditing(false);
+      setCurrentPassword('');
+      setNewPassword('');
+    } catch (err: any) {
+      const msg = err.response?.data?.error || 'Failed to save. Please try again.';
+      Alert.alert('Error', msg);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -58,11 +88,16 @@ export function AccountScreen({ navigation }: AccountScreenProps) {
             </View>
             <TouchableOpacity
               style={styles.editButton}
-              onPress={() => setIsEditing(!isEditing)}
+              onPress={() => isEditing ? handleSave() : setIsEditing(true)}
+              disabled={isSaving}
             >
-              <Typography variant="bold" size="small" color={isEditing ? colors.primary : colors.textSecondary}>
-                {isEditing ? 'Save' : 'Edit'}
-              </Typography>
+              {isSaving ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <Typography variant="bold" size="small" color={isEditing ? colors.primary : colors.textSecondary}>
+                  {isEditing ? 'Save' : 'Edit'}
+                </Typography>
+              )}
             </TouchableOpacity>
           </View>
 
@@ -84,18 +119,34 @@ export function AccountScreen({ navigation }: AccountScreenProps) {
           </View>
 
           <View style={styles.passportRow}>
-            <Typography variant="medium" size="small" color={colors.textSecondary} style={styles.passportLabel}>PASSWORD</Typography>
+            <Typography variant="medium" size="small" color={colors.textSecondary} style={styles.passportLabel}>CURRENT PW</Typography>
             {isEditing ? (
               <TextInput
                 style={styles.passportInput}
-                value={password}
-                onChangeText={setPassword}
+                value={currentPassword}
+                onChangeText={setCurrentPassword}
                 secureTextEntry
+                placeholder="Enter current password"
+                placeholderTextColor={colors.textTertiary}
               />
             ) : (
-              <Typography variant="bold" size="body" color={colors.textPrimary}>••••••••</Typography>
+              <Typography variant="bold" size="body" color={colors.textPrimary}>{'••••••••'}</Typography>
             )}
           </View>
+
+          {isEditing && (
+            <View style={styles.passportRow}>
+              <Typography variant="medium" size="small" color={colors.textSecondary} style={styles.passportLabel}>NEW PW</Typography>
+              <TextInput
+                style={styles.passportInput}
+                value={newPassword}
+                onChangeText={setNewPassword}
+                secureTextEntry
+                placeholder="Leave blank to keep current"
+                placeholderTextColor={colors.textTertiary}
+              />
+            </View>
+          )}
         </View>
 
         {/* The Swatches (Aesthetics) */}

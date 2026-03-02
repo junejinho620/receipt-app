@@ -9,11 +9,25 @@ import { AuthProvider } from './src/context/AuthContext';
 import { ThemeProvider } from './src/context/ThemeContext';
 import { customFonts } from './src/theme/typography';
 
+import * as Notifications from 'expo-notifications';
+
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
 
 export default function App() {
   const [fontsLoaded] = useFonts(customFonts);
+
+  React.useEffect(() => {
+    // Clear badge count on app open
+    Notifications.setBadgeCountAsync(0);
+
+    const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+      console.log('User tapped notification:', response.notification.request.content.title);
+      Notifications.setBadgeCountAsync(0);
+    });
+
+    return () => subscription.remove();
+  }, []);
 
   const onLayoutRootView = useCallback(async () => {
     if (fontsLoaded) {

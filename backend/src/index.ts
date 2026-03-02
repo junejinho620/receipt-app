@@ -9,6 +9,8 @@ import { fileURLToPath } from 'url';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
+import multer from 'multer';
+
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -29,7 +31,37 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
+// Configure Multer storage
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, path.join(process.cwd(), 'uploads/'));
+  },
+  filename: (req, file, cb) => {
+    // Generate a unique filename: timestamp-random.ext
+    const ext = path.extname(file.originalname) || '.jpg';
+    const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1e9) + ext;
+    cb(null, uniqueName);
+  }
+});
+const upload = multer({ storage });
+
+// Media Upload Endpoint
+app.post('/api/upload', upload.single('file'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'No file uploaded' });
+    }
+    // req.get('host') dynamically gets the local IP/port the requester used (e.g. 192.168.1.100:3000)
+    const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+    res.json({ success: true, url: fileUrl });
+  } catch (error: any) {
+    console.error('Upload Error:', error);
+    res.status(500).json({ success: false, error: 'Server error during upload' });
+  }
+});
 
 // ----------------------------------------------------
 // AUTHENTICATION
@@ -113,7 +145,10 @@ app.post('/api/auth/login', async (req, res) => {
 app.get('/api/users/profile', authenticateToken, async (req: any, res) => {
   try {
     const userId = req.user.id;
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { achievements: true }
+    });
     if (!user) return res.status(404).json({ success: false, error: 'User not found' });
 
     // Compute streak from logs sorted by date desc
@@ -126,41 +161,72 @@ app.get('/api/users/profile', authenticateToken, async (req: any, res) => {
     let currentStreak = 0;
     let longestStreak = 0;
     if (logs.length > 0) {
-      const today = new Date().toISOString().split('T')[0];
-      let streak = 0;
-      let checkDate = today;
-      for (const log of logs) {
-        if (log.date === checkDate) {
-          streak++;
-          const prev = new Date(checkDate);
-          prev.setDate(prev.getDate() - 1);
-          checkDate = prev.toISOString().split('T')[0];
-        } else {
-          break;
-        }
+      let today = req.query.localDate as string;
+      if (!today) {
+        today = new Date().toISOString().split('T')[0] || '';
       }
-      currentStreak = streak;
-      // Simple longest streak calculation
+
+      // 1. Calculate Yesterday Safely
+      const todayDateObj = new Date(today);
+      todayDateObj.setUTCHours(0, 0, 0, 0);
+      const yesterdayDateObj = new Date(todayDateObj);
+      yesterdayDateObj.setUTCDate(yesterdayDateObj.getUTCDate() - 1);
+      const yesterday = yesterdayDateObj.toISOString().split('T')[0];
+
+      // 2. Identify Current Streak
+      const mostRecentLogDate = logs[0]?.date || '';
+      if (mostRecentLogDate !== today && mostRecentLogDate !== yesterday) {
+        currentStreak = 0; // Streak broken
+      } else {
+        let streak = 0;
+        let checkDate = mostRecentLogDate;
+        for (const log of logs) {
+          if (log.date === checkDate) {
+            streak++;
+            const prev = new Date(checkDate);
+            prev.setUTCHours(0, 0, 0, 0);
+            prev.setUTCDate(prev.getUTCDate() - 1);
+            checkDate = prev.toISOString().split('T')[0] || '';
+          } else {
+            break;
+          }
+        }
+        currentStreak = streak;
+      }
+
+      // 3. Simple Longest Streak Calculation
       let tempStreak = 1;
       const sortedDates = logs.map(l => l.date).sort();
       for (let i = 1; i < sortedDates.length; i++) {
         const prev = new Date(sortedDates[i - 1]!);
         const curr = new Date(sortedDates[i]!);
         const diff = (curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24);
-        if (diff === 1) { tempStreak++; longestStreak = Math.max(longestStreak, tempStreak); }
-        else tempStreak = 1;
+        if (Math.round(diff) === 1) {
+          tempStreak++;
+          longestStreak = Math.max(longestStreak, tempStreak);
+        } else {
+          tempStreak = 1;
+        }
       }
-      longestStreak = Math.max(longestStreak, currentStreak);
+      longestStreak = Math.max(longestStreak, currentStreak, 1);
     }
-    const level = Math.floor(totalEntries / 10) + 1;
-    const levelProgress = (totalEntries % 10) / 10;
+
+    // XP & Level Engine
+    const XP_PER_LOG = 20;
+    const XP_PER_STREAK_DAY = 5;
+    const totalXp = (totalEntries * XP_PER_LOG) + (longestStreak * XP_PER_STREAK_DAY);
+    const level = Math.floor(Math.sqrt(totalXp / 100)) + 1;
+    const currentLevelBaseXp = Math.pow(level - 1, 2) * 100;
+    const nextLevelBaseXp = Math.pow(level, 2) * 100;
+    const levelProgress = totalXp === 0 ? 0 : (totalXp - currentLevelBaseXp) / (nextLevelBaseXp - currentLevelBaseXp);
 
     res.json({
       success: true,
       data: {
         id: user.id, username: user.username, email: user.email,
         avatarUrl: user.avatarUrl, selectedTitle: user.selectedTitle,
-        stats: { currentStreak, longestStreak, totalEntries },
+        achievements: user.achievements,
+        stats: { currentStreak, longestStreak, totalEntries, totalXp },
         level, levelProgress
       }
     });
@@ -192,11 +258,15 @@ app.get('/api/users/:id', authenticateToken, async (req, res) => {
 app.put('/api/users/profile', authenticateToken, async (req: any, res) => {
   try {
     const userId = req.user.id;
-    const { username, email, currentPassword, newPassword } = req.body;
+    const { username, email, currentPassword, newPassword, selectedTitle } = req.body;
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return res.status(404).json({ success: false, error: 'User not found' });
 
     const updateData: any = {};
+
+    if (selectedTitle !== undefined) {
+      updateData.selectedTitle = selectedTitle;
+    }
 
     if (username && username !== user.username) {
       const trimmed = username.trim();
@@ -326,7 +396,64 @@ app.post('/api/logs', async (req, res) => {
     const log = await prisma.log.create({
       data: { userId, date, title, location, inputType, content, photoUrl, musicTitle, musicArtist, musicArtwork }
     });
-    res.json({ success: true, data: log });
+
+    // BACKGROUND ACHIEVEMENT CHECK 
+    const newlyUnlocked: string[] = [];
+    try {
+      const userLogsCount = await prisma.log.count({ where: { userId } });
+
+      const unlockAchievement = async (titleId: string) => {
+        const exists = await prisma.achievement.findUnique({
+          where: { userId_titleId: { userId, titleId } }
+        });
+        if (!exists) {
+          await prisma.achievement.create({ data: { userId, titleId } });
+          newlyUnlocked.push(titleId);
+        }
+      };
+
+      if (userLogsCount >= 1) await unlockAchievement("first_ledger");
+      if (userLogsCount >= 10) await unlockAchievement("steadfast_auditor");
+      if (userLogsCount >= 50) await unlockAchievement("receipt_master");
+
+      const logDateObj = new Date(log.createdAt);
+      const logHour = logDateObj.getHours();
+
+      if (logHour >= 4 && logHour <= 8) await unlockAchievement("early_bird");
+      if (logHour >= 0 && logHour < 4) await unlockAchievement("night_owl");
+      if (logDateObj.getDay() === 0) await unlockAchievement("sunday_scaries");
+
+      if (log.photoUrl) await unlockAchievement("aesthetic_auditor");
+      if (log.musicTitle) await unlockAchievement("soundtrack");
+      if (log.inputType === 'Emoji') await unlockAchievement("expressive");
+
+      const logs = await prisma.log.findMany({
+        where: { userId },
+        orderBy: { date: 'desc' },
+        select: { date: true }
+      });
+      if (logs.length >= 7) {
+        let streak = 0;
+        let checkDate = logs[0]?.date || '';
+        for (const l of logs) {
+          if (l.date === checkDate) {
+            streak++;
+            const prev = new Date(checkDate);
+            prev.setUTCHours(0, 0, 0, 0);
+            prev.setUTCDate(prev.getUTCDate() - 1);
+            checkDate = prev.toISOString().split('T')[0] || '';
+          } else {
+            break;
+          }
+        }
+        if (streak >= 7) await unlockAchievement("weekly_warrior");
+      }
+
+    } catch (achError) {
+      console.error("Failed to unlock achievement", achError);
+    }
+
+    res.json({ success: true, newlyUnlocked, data: log });
   } catch (error: any) {
     // Usually fails if (userId, date) isn't unique, because they already logged today
     res.status(400).json({ success: false, error: 'You have already filed a receipt for today.' });

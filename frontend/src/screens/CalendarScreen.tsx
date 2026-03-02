@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Dimensions } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Dimensions, Image } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -58,6 +58,10 @@ export function CalendarScreen({ navigation }: CalendarScreenProps) {
               time: new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
               location: log.location || 'Unknown Location',
               preview: log.inputType === 'Text' ? log.content : `[${log.inputType} Entry]`,
+              photoUrl: log.photoUrl || null,
+              musicTitle: log.musicTitle || null,
+              musicArtist: log.musicArtist || null,
+              musicArtwork: log.musicArtwork || null,
             };
           });
           setLogs(logsDict);
@@ -235,6 +239,45 @@ export function CalendarScreen({ navigation }: CalendarScreenProps) {
                     <Feather name="map-pin" size={14} color={colors.textTertiary} style={{ marginRight: 6 }} />
                     <Typography variant="regular" size="small" color={colors.textSecondary}>{selectedLog.location}</Typography>
                   </View>
+
+                  {/* Music attachment */}
+                  {selectedLog.musicTitle && (
+                    <View style={styles.mediaSectionContainer}>
+                      <View style={styles.mediaSectionDivider} />
+                      <View style={styles.musicRow}>
+                        {selectedLog.musicArtwork ? (
+                          <Image source={{ uri: selectedLog.musicArtwork }} style={styles.musicArtwork} />
+                        ) : (
+                          <View style={[styles.musicArtwork, styles.musicArtworkPlaceholder]}>
+                            <Feather name="music" size={16} color={colors.primary} />
+                          </View>
+                        )}
+                        <View style={styles.musicInfo}>
+                          <Typography variant="bold" size="small" color={colors.textPrimary} numberOfLines={1}>
+                            {selectedLog.musicTitle}
+                          </Typography>
+                          {selectedLog.musicArtist ? (
+                            <Typography variant="regular" size="caption" color={colors.textSecondary} numberOfLines={1}>
+                              {selectedLog.musicArtist}
+                            </Typography>
+                          ) : null}
+                        </View>
+                        <Feather name="headphones" size={14} color={colors.textTertiary} />
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Photo attachment */}
+                  {selectedLog.photoUrl && (
+                    <View style={styles.mediaSectionContainer}>
+                      {!selectedLog.musicTitle && <View style={styles.mediaSectionDivider} />}
+                      <Image
+                        source={{ uri: selectedLog.photoUrl }}
+                        style={styles.logPhotoThumb}
+                        resizeMode="cover"
+                      />
+                    </View>
+                  )}
                 </View>
               ) : (
                 <View style={styles.emptyStateContainer}>
@@ -412,5 +455,43 @@ const getStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
-  }
+  },
+  mediaSectionContainer: {
+    marginTop: layout.spacing.m,
+  },
+  mediaSectionDivider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginBottom: layout.spacing.m,
+  },
+  musicRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surfaceHighlight,
+    borderRadius: 12,
+    padding: layout.spacing.m,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  musicArtwork: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    backgroundColor: colors.surfaceHighlight,
+  },
+  musicArtworkPlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  musicInfo: {
+    flex: 1,
+    marginLeft: 12,
+    marginRight: 8,
+  },
+  logPhotoThumb: {
+    width: '100%',
+    height: 160,
+    borderRadius: 12,
+    backgroundColor: colors.surfaceHighlight,
+  },
 });

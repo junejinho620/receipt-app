@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Modal } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Modal, Alert } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { Typography } from '../components/ui/Typography';
 import { MenuModal } from '../components/MenuModal';
 import { CustomSwitch } from '../components/ui/CustomSwitch';
 import { useTheme } from '../context/ThemeContext';
 import { layout } from '../theme/layout';
+import { requestNotificationPermissions, scheduleDailyReminders, cancelAllReminders } from '../services/notifications';
 
 type NotificationsScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Notifications'>;
@@ -23,19 +25,90 @@ for (let h = 0; h < 24; h++) {
   TIME_OPTIONS.push(`${hStr}:30 ${period}`);
 }
 
+const SETTINGS_KEY = '@TheReceipt:NotificationSettings';
+
 export function NotificationsScreen({ navigation }: NotificationsScreenProps) {
   const [menuVisible, setMenuVisible] = useState(false);
   const { colors } = useTheme();
   const styles = React.useMemo(() => getStyles(colors), [colors]);
 
   // Settings state
-  const [dailyRitual, setDailyRitual] = useState(true);
-  const [weeklyMontage, setWeeklyMontage] = useState(true);
+  const [dailyRitual, setDailyRitual] = useState(false);
+  const [weeklyMontage, setWeeklyMontage] = useState(false);
   const [mindfulPrompts, setMindfulPrompts] = useState(false);
 
   // Custom Time Dropdown State
   const [ritualTime, setRitualTime] = useState('09:00 PM');
   const [showTimeDropdown, setShowTimeDropdown] = useState(false);
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      const stored = await AsyncStorage.getItem(SETTINGS_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setDailyRitual(parsed.dailyRitual ?? false);
+        setWeeklyMontage(parsed.weeklyMontage ?? false);
+        setMindfulPrompts(parsed.mindfulPrompts ?? false);
+        setRitualTime(parsed.ritualTime ?? '09:00 PM');
+      }
+    } catch (e) {
+      console.error('Failed to load notification settings', e);
+    }
+  };
+
+  const saveSettings = async (updates: any) => {
+    try {
+      const current = await AsyncStorage.getItem(SETTINGS_KEY);
+      const parsed = current ? JSON.parse(current) : {};
+      const newSettings = { ...parsed, ...updates };
+      await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(newSettings));
+    } catch (e) {
+      console.error('Failed to save notification settings', e);
+    }
+  };
+
+  const parseTimeToHoursMinutes = (timeStr: string) => {
+    // "09:00 PM" -> hrs, mins
+    const [time, period] = timeStr.split(' ');
+    let [hrs, mins] = time.split(':').map(Number);
+    if (period === 'PM' && hrs !== 12) hrs += 12;
+    if (period === 'AM' && hrs === 12) hrs = 0;
+    return { hrs, mins };
+  };
+
+  const handleToggleDailyRitual = async (value: boolean) => {
+    setDailyRitual(value);
+    saveSettings({ dailyRitual: value });
+
+    if (value) {
+      const granted = await requestNotificationPermissions();
+      if (!granted) {
+        Alert.alert('Permission Denied', 'Please enable notifications in your OS settings.');
+        setDailyRitual(false);
+        saveSettings({ dailyRitual: false });
+        return;
+      }
+      const { hrs, mins } = parseTimeToHoursMinutes(ritualTime);
+      await scheduleDailyReminders(hrs, mins);
+    } else {
+      await cancelAllReminders();
+    }
+  };
+
+  const handleTimeChange = async (newTime: string) => {
+    setRitualTime(newTime);
+    setShowTimeDropdown(false);
+    saveSettings({ ritualTime: newTime });
+
+    if (dailyRitual) {
+      const { hrs, mins } = parseTimeToHoursMinutes(newTime);
+      await scheduleDailyReminders(hrs, mins);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -69,7 +142,7 @@ export function NotificationsScreen({ navigation }: NotificationsScreenProps) {
                 A gentle nudge to settle your ledger for the day.
               </Typography>
             </View>
-            <CustomSwitch value={dailyRitual} onValueChange={setDailyRitual} />
+            <CustomSwitch value={dailyRitual} onValueChange={handleToggleDailyRitual} />
           </View>
 
           {dailyRitual && (
@@ -139,10 +212,7 @@ export function NotificationsScreen({ navigation }: NotificationsScreenProps) {
                     styles.timeOption,
                     ritualTime === time && styles.timeOptionSelected
                   ]}
-                  onPress={() => {
-                    setRitualTime(time);
-                    setShowTimeDropdown(false);
-                  }}
+                  onPress={() => handleTimeChange(time)}
                 >
                   <Typography
                     variant={ritualTime === time ? "bold" : "medium"}
@@ -173,7 +243,7 @@ export function NotificationsScreen({ navigation }: NotificationsScreenProps) {
         onNavigateToDataPrivacy={() => navigation.navigate('DataPrivacy')}
         onNavigateToAboutHelp={() => navigation.navigate('AboutHelp')}
       />
-    </SafeAreaView>
+    </SafeAreaView >
   );
 }
 

@@ -19,8 +19,11 @@ import { Typography } from '../components/ui/Typography';
 import { Input } from '../components/ui/Input';
 import { colors } from '../theme/colors';
 import { layout } from '../theme/layout';
+import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../context/AuthContext';
-import api from '../api/client';
+import api, { uploadFile } from '../api/client';
+import { getLocalISODate } from '../utils/date';
+import { AchievementModal } from '../components/AchievementModal';
 
 type InteractiveCanvasScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'InteractiveCanvas'>;
@@ -34,16 +37,29 @@ export function InteractiveCanvasScreen({ navigation }: InteractiveCanvasScreenP
   const [textContent, setTextContent] = useState('');
   const [logTitle, setLogTitle] = useState('');
   const [location, setLocation] = useState('');
-  const [hasPhoto, setHasPhoto] = useState(false);
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [unlockedAchievements, setUnlockedAchievements] = useState<string[]>([]);
 
   const hasContent = selectedInput === 'Text'
     ? textContent.trim().length > 0
-    : hasPhoto;
+    : !!photoUri;
 
-  const handlePhotoPlaceholder = () => {
-    setHasPhoto(true);
+  const handlePhotoPlaceholder = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Required', 'Please grant photo library access to attach images.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsMultipleSelection: false,
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets.length > 0) {
+      setPhotoUri(result.assets[0].uri);
+    }
   };
 
   const handlePrintReceipt = async () => {
@@ -54,20 +70,32 @@ export function InteractiveCanvasScreen({ navigation }: InteractiveCanvasScreenP
 
     setLoading(true);
     try {
-      const today = new Date().toISOString().split('T')[0];
-      await api.post('/api/logs', {
+      let finalPhotoUrl = null;
+      if (photoUri) {
+        finalPhotoUrl = await uploadFile(photoUri);
+      }
+
+      const today = getLocalISODate(new Date());
+
+      const response = await api.post('/api/logs', {
         userId: user.id,
         date: today,
         title: logTitle,
         location: location,
         inputType: selectedInput,
         content: textContent,
-        photoUrl: hasPhoto ? 'dummy-s3-url' : null,
+        photoUrl: finalPhotoUrl,
       });
 
-      Alert.alert('Success!', 'Receipt logged successfully.', [
-        { text: 'OK', onPress: () => navigation.replace('Home') }
-      ]);
+      const newlyUnlocked = response.data.newlyUnlocked || [];
+
+      if (newlyUnlocked.length > 0) {
+        setUnlockedAchievements(newlyUnlocked);
+      } else {
+        Alert.alert('Success!', 'Receipt logged successfully.', [
+          { text: 'OK', onPress: () => navigation.replace('Home') }
+        ]);
+      }
     } catch (error: any) {
       console.error(error);
       Alert.alert('Error', error.response?.data?.error || 'Failed to submit receipt.');
@@ -154,7 +182,7 @@ export function InteractiveCanvasScreen({ navigation }: InteractiveCanvasScreenP
                 />
               ) : (
                 <TouchableOpacity onPress={handlePhotoPlaceholder} style={styles.photoPlaceholder}>
-                  {hasPhoto ? (
+                  {!!photoUri ? (
                     <Typography size="h1">📸</Typography>
                   ) : (
                     <Typography variant="medium" color={colors.textSecondary}>Tap to Capture</Typography>
@@ -222,6 +250,15 @@ export function InteractiveCanvasScreen({ navigation }: InteractiveCanvasScreenP
         visible={showModal}
         onClose={handleCloseModal}
         onSignUp={handleSignUp}
+      />
+
+      <AchievementModal
+        visible={unlockedAchievements.length > 0}
+        unlockedTitleIds={unlockedAchievements}
+        onClose={() => {
+          setUnlockedAchievements([]);
+          navigation.replace('Home');
+        }}
       />
     </ScreenWrapper>
   );

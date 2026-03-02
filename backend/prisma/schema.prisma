@@ -19,6 +19,7 @@ model User {
   
   logs          Log[]
   weeklyReports WeeklyReport[]
+  achievements  Achievement[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -65,4 +66,15 @@ model WeeklyReport {
   createdAt     DateTime @default(now())
 
   @@unique([userId, startDate])
+}
+
+model Achievement {
+  id          Int      @id @default(autoincrement())
+  userId      String
+  titleId     String
+
+  user        User     @relation(fields: [userId], references: [id])
+  unlockedAt  DateTime @default(now())
+
+  @@unique([userId, titleId])
 }

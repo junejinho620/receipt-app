@@ -13,6 +13,7 @@ import {
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as ImagePicker from 'expo-image-picker';
 import { MusicSearchModal, iTunesTrack } from '../components/MusicSearchModal';
+import { AchievementModal } from '../components/AchievementModal';
 import { useTheme } from '../context/ThemeContext';
 import { layout } from '../theme/layout';
 import { ScreenWrapper } from '../components/ui/ScreenWrapper';
@@ -24,7 +25,8 @@ import { MenuModal } from '../components/MenuModal';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useAuth } from '../context/AuthContext';
-import api from '../api/client';
+import api, { uploadFile } from '../api/client';
+import { getLocalISODate } from '../utils/date';
 
 type HomeScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Home'>;
@@ -70,6 +72,8 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
   const [selectedPhotos, setSelectedPhotos] = useState<ImagePicker.ImagePickerAsset[]>([]);
   const [selectedTrack, setSelectedTrack] = useState<iTunesTrack | null>(null);
   const [isMusicModalVisible, setIsMusicModalVisible] = useState(false);
+  const [currentStreak, setCurrentStreak] = useState<number | null>(null);
+  const [unlockedAchievements, setUnlockedAchievements] = useState<string[]>([]);
 
   const characterCount = textContent.length;
   const hasContent = selectedInput === 'Text'
@@ -82,16 +86,36 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
     month: 'long',
     day: 'numeric',
   });
-  const isoDateString = today.toISOString().split('T')[0];
+  const isoDateString = getLocalISODate(today);
 
   React.useEffect(() => {
     if (!user) return;
+    // Fetch streak in parallel
+    api.get(`/api/users/profile?localDate=${isoDateString}`).then(r => {
+      setCurrentStreak(r.data?.data?.stats?.currentStreak ?? 0);
+    }).catch(() => { });
+
     const fetchTodayLog = async () => {
       try {
         const response = await api.get(`/api/logs/${user.id}/${isoDateString}`);
         if (response.data.data) {
           const log = response.data.data;
-          setExistingLog(log);
+
+          // Reconstruct the media array from flat fields so Evidence tab displays correctly
+          const media: any[] = [];
+          if (log.photoUrl) {
+            media.push({ type: 'image', url: log.photoUrl });
+          }
+          if (log.musicTitle) {
+            media.push({
+              type: 'music',
+              url: '',
+              thumbnail: log.musicArtwork || null,
+              metadata: { title: log.musicTitle, artist: log.musicArtist || '' },
+            });
+          }
+
+          setExistingLog({ ...log, media });
           setLogTitle(log.title || '');
           setLocation(log.location || '');
           if (log.inputType === 'Emoji') {
@@ -144,43 +168,47 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
     if (!user) return;
     setIsSaving(true);
     try {
-      const formData = new FormData();
-      formData.append('date', isoDateString);
-      formData.append('text', selectedInput === 'Text' ? textContent : '');
-      formData.append('emoji', selectedEmojis.join(','));
-      if (logTitle) formData.append('tags', JSON.stringify([logTitle]));
-      if (location) formData.append('location', JSON.stringify({ name: location }));
 
-      // Append photos
-      selectedPhotos.forEach((photo, index) => {
-        const ext = photo.uri.split('.').pop() || 'jpg';
-        formData.append('media', {
-          uri: photo.uri,
-          name: `photo_${index}.${ext}`,
-          type: photo.mimeType || `image/${ext}`,
-        } as any);
-      });
-
-      // Append audio as externalMedia JSON
-      if (selectedTrack) {
-        const externalMedia = {
-          type: 'music',
-          url: selectedTrack.previewUrl || '',
-          thumbnail: selectedTrack.artworkUrl100,
-          metadata: {
-            title: selectedTrack.trackName,
-            artist: selectedTrack.artistName,
-            album: selectedTrack.collectionName || ''
-          }
-        };
-        formData.append('externalMedia', JSON.stringify(externalMedia));
+      let finalPhotoUrl = null;
+      if (selectedPhotos.length > 0) {
+        finalPhotoUrl = await uploadFile(selectedPhotos[0].uri);
       }
 
-      const response = await api.post('/api/entries', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      setExistingLog(response.data.data);
-      Alert.alert('Success!', 'Your entry for today has been locked.');
+      const payload = {
+        userId: user.id,
+        date: isoDateString,
+        title: logTitle || null,
+        location: location || null,
+        inputType: selectedInput, // 'Text' | 'Emoji'
+        content: selectedInput === 'Text' ? textContent : selectedEmojis.join(','),
+        photoUrl: finalPhotoUrl,
+        // Music metadata from iTunes search
+        musicTitle: selectedTrack?.trackName || null,
+        musicArtist: selectedTrack?.artistName || null,
+        musicArtwork: selectedTrack?.artworkUrl100 || null,
+      };
+      const response = await api.post('/api/logs', payload);
+      const savedLog = response.data.data;
+      const newlyUnlocked = response.data.newlyUnlocked || [];
+
+      // Reconstruct media array so Evidence tab shows saved music/photo immediately
+      const media: any[] = [];
+      if (savedLog.photoUrl) media.push({ type: 'image', url: savedLog.photoUrl });
+      if (savedLog.musicTitle) {
+        media.push({
+          type: 'music',
+          url: '',
+          thumbnail: savedLog.musicArtwork || null,
+          metadata: { title: savedLog.musicTitle, artist: savedLog.musicArtist || '' },
+        });
+      }
+      setExistingLog({ ...savedLog, media });
+
+      if (newlyUnlocked.length > 0) {
+        setUnlockedAchievements(newlyUnlocked);
+      } else {
+        Alert.alert('Success!', 'Your entry for today has been locked.');
+      }
     } catch (err: any) {
       console.error(err);
       Alert.alert('Error', err.response?.data?.error || 'Failed to settle book. You might have already submitted today.');
@@ -218,7 +246,9 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
             {formattedDate}
           </Typography>
           <View style={styles.streakBadge}>
-            <Typography variant="mono" size="caption" color={colors.surface}>212 DAY STREAK</Typography>
+            <Typography variant="mono" size="caption" color={colors.surface}>
+              {currentStreak !== null ? `${currentStreak} DAY STREAK` : '— DAY STREAK'}
+            </Typography>
           </View>
         </Animated.View>
 
@@ -257,7 +287,6 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
                     <TouchableOpacity
                       key={type}
                       onPress={() => setSelectedInput(type)}
-                      disabled={!!existingLog}
                       style={[
                         styles.modeChip,
                         selectedInput === type && styles.modeChipActive
@@ -345,7 +374,6 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
                     <TouchableOpacity
                       key={type}
                       onPress={() => setSelectedMedia(type)}
-                      disabled={!!existingLog}
                       style={[
                         styles.modeChip,
                         selectedMedia === type && styles.modeChipActive
@@ -411,7 +439,20 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
                   <View>
                     {/* Existing log audio */}
                     {existingLog?.media?.filter((m: any) => m.type === 'music').length > 0 && (
-                      <View style={styles.audioCard}>
+                      <TouchableOpacity
+                        style={styles.audioCard}
+                        activeOpacity={0.75}
+                        onPress={() => {
+                          const track = existingLog.media.find((m: any) => m.type === 'music');
+                          if (track) {
+                            Alert.alert(
+                              '🎵 Attached Music',
+                              `${track.metadata?.title || 'Unknown Track'}${track.metadata?.artist ? `\n${track.metadata.artist}` : ''}`,
+                              [{ text: 'Got it', style: 'default' }]
+                            );
+                          }
+                        }}
+                      >
                         {existingLog.media.filter((m: any) => m.type === 'music').map((m: any, i: number) => (
                           <View key={i} style={styles.audioRow}>
                             {m.thumbnail ? (
@@ -422,19 +463,21 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
                               </View>
                             )}
                             <View style={{ flex: 1, marginLeft: 12 }}>
-                              <Typography variant="medium" color={colors.textPrimary}>
-                                {m.metadata?.title || m.url?.split('/').pop() || 'Audio track'}
+                              <Typography variant="medium" color={colors.textPrimary} numberOfLines={1}>
+                                {m.metadata?.title || 'Audio track'}
                               </Typography>
                               {m.metadata?.artist && (
-                                <Typography variant="regular" size="small" color={colors.textSecondary}>
+                                <Typography variant="regular" size="small" color={colors.textSecondary} numberOfLines={1}>
                                   {m.metadata.artist}
                                 </Typography>
                               )}
                             </View>
+                            <Feather name="chevron-right" size={16} color={colors.textTertiary} />
                           </View>
                         ))}
-                      </View>
+                      </TouchableOpacity>
                     )}
+
 
                     {/* Selected audio */}
                     {selectedTrack && !existingLog && (
@@ -528,7 +571,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
             style={styles.submitButton}
           />
           <Typography variant="mono" size="caption" color={colors.textTertiary} centered style={{ marginTop: 12 }}>
-            RECEIPT #{(Math.random() * 10000).toFixed(0).padStart(5, '0')}
+            RECEIPT #{existingLog?.receiptId ? String(existingLog.receiptId).padStart(5, '0') : 'PENDING'}
           </Typography>
         </Animated.View>
 
@@ -550,12 +593,22 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
         onNavigateToAboutHelp={() => navigation.navigate('AboutHelp')}
       />
 
+      {/* Music Search Modal */}
       <MusicSearchModal
         visible={isMusicModalVisible}
         onClose={() => setIsMusicModalVisible(false)}
-        onSelectTrack={(track) => setSelectedTrack(track)}
+        onSelectTrack={(track) => {
+          setSelectedTrack(track);
+          setIsMusicModalVisible(false);
+        }}
       />
-    </ScreenWrapper >
+
+      <AchievementModal
+        visible={unlockedAchievements.length > 0}
+        unlockedTitleIds={unlockedAchievements}
+        onClose={() => setUnlockedAchievements([])}
+      />
+    </ScreenWrapper>
   );
 }
 
