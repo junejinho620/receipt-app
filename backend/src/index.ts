@@ -108,6 +108,69 @@ app.post('/api/auth/login', async (req, res) => {
 // ----------------------------------------------------
 // USERS PROFILES
 // ----------------------------------------------------
+
+// GET /api/users/profile — authenticated user's profile + streak stats
+app.get('/api/users/profile', authenticateToken, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+
+    // Compute streak from logs sorted by date desc
+    const logs = await prisma.log.findMany({
+      where: { userId },
+      orderBy: { date: 'desc' },
+      select: { date: true }
+    });
+    const totalEntries = logs.length;
+    let currentStreak = 0;
+    let longestStreak = 0;
+    if (logs.length > 0) {
+      const today = new Date().toISOString().split('T')[0];
+      let streak = 0;
+      let checkDate = today;
+      for (const log of logs) {
+        if (log.date === checkDate) {
+          streak++;
+          const prev = new Date(checkDate);
+          prev.setDate(prev.getDate() - 1);
+          checkDate = prev.toISOString().split('T')[0];
+        } else {
+          break;
+        }
+      }
+      currentStreak = streak;
+      // Simple longest streak calculation
+      let tempStreak = 1;
+      const sortedDates = logs.map(l => l.date).sort();
+      for (let i = 1; i < sortedDates.length; i++) {
+        const prev = new Date(sortedDates[i - 1]!);
+        const curr = new Date(sortedDates[i]!);
+        const diff = (curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24);
+        if (diff === 1) { tempStreak++; longestStreak = Math.max(longestStreak, tempStreak); }
+        else tempStreak = 1;
+      }
+      longestStreak = Math.max(longestStreak, currentStreak);
+    }
+    const level = Math.floor(totalEntries / 10) + 1;
+    const levelProgress = (totalEntries % 10) / 10;
+
+    res.json({
+      success: true,
+      data: {
+        id: user.id, username: user.username, email: user.email,
+        avatarUrl: user.avatarUrl, selectedTitle: user.selectedTitle,
+        stats: { currentStreak, longestStreak, totalEntries },
+        level, levelProgress
+      }
+    });
+  } catch (error: any) {
+    console.error('PROFILE FETCH ERROR:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// GET /api/users/:id - Must be handled after /api/users/profile
 app.get('/api/users/:id', authenticateToken, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
@@ -125,14 +188,143 @@ app.get('/api/users/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// PUT /api/users/profile — update username, email, password
+app.put('/api/users/profile', authenticateToken, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    const { username, email, currentPassword, newPassword } = req.body;
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+
+    const updateData: any = {};
+
+    if (username && username !== user.username) {
+      const trimmed = username.trim();
+      if (trimmed.length < 3 || trimmed.length > 30)
+        return res.status(400).json({ success: false, error: 'Username must be 3-30 characters' });
+      const exists = await prisma.user.findFirst({ where: { username: trimmed, NOT: { id: userId } } });
+      if (exists) return res.status(400).json({ success: false, error: 'That username is already taken' });
+      updateData.username = trimmed;
+    }
+
+    if (email && email !== user.email) {
+      const exists = await prisma.user.findFirst({ where: { email, NOT: { id: userId } } });
+      if (exists) return res.status(400).json({ success: false, error: 'Email is already in use' });
+      updateData.email = email;
+    }
+
+    if (newPassword) {
+      if (!currentPassword)
+        return res.status(400).json({ success: false, error: 'Current password is required' });
+      const match = await bcrypt.compare(currentPassword, user.passwordHash);
+      if (!match) return res.status(401).json({ success: false, error: 'Current password is incorrect' });
+      updateData.passwordHash = await bcrypt.hash(newPassword, 10);
+    }
+
+    if (Object.keys(updateData).length === 0)
+      return res.json({ success: true, data: user });
+
+    const updated = await prisma.user.update({ where: { id: userId }, data: updateData });
+    res.json({ success: true, data: { id: updated.id, username: updated.username, email: updated.email, avatarUrl: updated.avatarUrl, selectedTitle: updated.selectedTitle } });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// PUT /api/users/avatar — store base64-encoded avatar in avatarUrl
+app.put('/api/users/avatar', authenticateToken, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    const { avatarDataUrl } = req.body;
+    if (!avatarDataUrl) return res.status(400).json({ success: false, error: 'No avatar data provided' });
+
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data: { avatarUrl: avatarDataUrl }
+    });
+    res.json({ success: true, data: { avatarUrl: updated.avatarUrl } });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// GET /api/users/profile/stats — privacy footprint stats
+app.get('/api/users/profile/stats', authenticateToken, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        _count: {
+          select: { logs: true, weeklyReports: true }
+        },
+        logs: {
+          select: { photoUrl: true }
+        }
+      }
+    });
+
+    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+
+    const totalLogs = user._count.logs;
+    const totalReports = user._count.weeklyReports;
+
+    // Count media items (both avatar and photos attached to logs)
+    let totalMediaItems = user.avatarUrl ? 1 : 0;
+    for (const log of user.logs) {
+      if (log.photoUrl) totalMediaItems++;
+    }
+
+    // Rough size estimate (obviously fake sizes based on counts)
+    const baseSize = 0.5; // Base profile JSON
+    const logSizeMB = totalLogs * 0.05; // 50KB per text log
+    const mediaSizeMB = totalMediaItems * 2.5; // 2.5MB per media item
+    const totalSizeMB = parseFloat((baseSize + logSizeMB + mediaSizeMB).toFixed(2));
+
+    const createdDate = new Date(user.createdAt);
+    const today = new Date();
+    const ageMs = today.getTime() - createdDate.getTime();
+    const accountAgeDays = Math.max(1, Math.floor(ageMs / (1000 * 60 * 60 * 24)));
+
+    res.json({
+      success: true,
+      data: {
+        totalLogs,
+        totalReports,
+        totalMediaItems,
+        totalSizeMB,
+        accountAgeDays
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// DELETE /api/users/profile — delete user account ("Shred Receipt")
+app.delete('/api/users/profile', authenticateToken, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    // Prisma cascades usually handled via schema, but we do manual just in case 
+    // unless schema supports onDelete: Cascade (which it doesn't currently)
+    await prisma.log.deleteMany({ where: { userId } });
+    await prisma.weeklyReport.deleteMany({ where: { userId } });
+    await prisma.user.delete({ where: { id: userId } });
+
+    res.json({ success: true, message: 'Account shredded' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // ----------------------------------------------------
 // LOGS (RECEIPTS)
 // ----------------------------------------------------
 app.post('/api/logs', async (req, res) => {
   try {
-    const { userId, date, title, location, inputType, content, photoUrl } = req.body;
+    const { userId, date, title, location, inputType, content, photoUrl, musicTitle, musicArtist, musicArtwork } = req.body;
     const log = await prisma.log.create({
-      data: { userId, date, title, location, inputType, content, photoUrl }
+      data: { userId, date, title, location, inputType, content, photoUrl, musicTitle, musicArtist, musicArtwork }
     });
     res.json({ success: true, data: log });
   } catch (error: any) {

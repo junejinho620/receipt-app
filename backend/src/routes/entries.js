@@ -32,6 +32,25 @@ router.post('/', auth, upload.array('media', 10), async (req, res) => {
       }
     }
 
+    // Process external media (like iTunes API search results)
+    if (req.body.externalMedia) {
+      try {
+        const externalItems = JSON.parse(req.body.externalMedia);
+        // Ensure it's an array for consistency, or handle single objects
+        const items = Array.isArray(externalItems) ? externalItems : [externalItems];
+        for (const item of items) {
+          media.push({
+            type: item.type || 'music', // Default to music for iTunes
+            url: item.url,
+            thumbnail: item.thumbnail,
+            metadata: item.metadata
+          });
+        }
+      } catch (err) {
+        console.error('Failed to parse externalMedia:', err);
+      }
+    }
+
     const entry = new Entry({
       userId: req.user._id,
       date: date ? new Date(date) : new Date(),
@@ -169,7 +188,7 @@ router.put('/:id', auth, upload.array('media', 10), async (req, res) => {
       });
     }
 
-    const { text, emoji, mood, tags, location, weather, removeMedia } = req.body;
+    const { text, emoji, mood, tags, location, weather, removeMedia, externalMedia } = req.body;
 
     // Update fields
     if (text !== undefined) entry.text = text;
@@ -196,6 +215,24 @@ router.put('/:id', auth, upload.array('media', 10), async (req, res) => {
             mimeType: file.mimetype
           }
         });
+      }
+    }
+
+    // Process external media (like iTunes API search results)
+    if (externalMedia) {
+      try {
+        const externalItems = JSON.parse(externalMedia);
+        const items = Array.isArray(externalItems) ? externalItems : [externalItems];
+        for (const item of items) {
+          entry.media.push({
+            type: item.type || 'music',
+            url: item.url,
+            thumbnail: item.thumbnail,
+            metadata: item.metadata
+          });
+        }
+      } catch (err) {
+        console.error('Failed to parse externalMedia on update:', err);
       }
     }
 

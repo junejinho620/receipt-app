@@ -6,12 +6,13 @@ const cron = require('node-cron');
 
 const connectDB = require('./config/database');
 const ReceiptGenerator = require('./services/receiptGenerator');
-const { User } = require('./models');
+const { User, Entry, WeeklyReceipt } = require('./models');
 
 // Import routes
 const entriesRoutes = require('./routes/entries');
 const calendarRoutes = require('./routes/calendar');
 const receiptsRoutes = require('./routes/receipts');
+const usersRoutes = require('./routes/users');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -43,6 +44,7 @@ app.get('/health', (req, res) => {
 app.use('/api/entries', entriesRoutes);
 app.use('/api/calendar', calendarRoutes);
 app.use('/api/receipts', receiptsRoutes);
+app.use('/api/users', usersRoutes);
 
 // User routes (basic auth endpoints)
 app.post('/api/auth/register', async (req, res) => {
@@ -149,6 +151,40 @@ app.get('/api/auth/me', require('./middleware/auth'), async (req, res) => {
       stats: req.user.stats
     }
   });
+});
+
+// Get user data stats for Privacy Screen
+app.get('/api/auth/me/stats', require('./middleware/auth'), async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const totalLogs = await Entry.countDocuments({ userId });
+    const totalReports = await WeeklyReceipt.countDocuments({ userId });
+
+    // Calculate a rough "media size" based on logs to show on the receipt
+    const entries = await Entry.find({ userId }).select('media');
+    let totalMediaItems = 0;
+    entries.forEach(entry => {
+      if (entry.media) totalMediaItems += entry.media.length;
+    });
+
+    // Faux calculation for bytes: Assume ~3.2MB per media item, ~2KB per log, ~5KB per report
+    const estimatedBytes = (totalMediaItems * 3200000) + (totalLogs * 2000) + (totalReports * 5000);
+    const mbSize = (estimatedBytes / (1024 * 1024)).toFixed(1);
+
+    res.json({
+      success: true,
+      data: {
+        totalLogs,
+        totalReports,
+        totalMediaItems,
+        totalSizeMB: parseFloat(mbSize) || 0.1,
+        accountAgeDays: Math.max(1, Math.floor((Date.now() - new Date(req.user.createdAt).getTime()) / (1000 * 60 * 60 * 24)))
+      }
+    });
+  } catch (error) {
+    console.error('Stats fetch error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch user stats' });
+  }
 });
 
 // Update user profile

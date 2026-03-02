@@ -26,6 +26,7 @@ model User {
 
 model Log {
   id          String   @id @default(uuid())
+  receiptId   Int      @default(autoincrement())
   user        User     @relation(fields: [userId], references: [id])
   userId      String
   
@@ -33,9 +34,14 @@ model Log {
   title       String?
   location    String?
   
-  inputType   String   // "Text" | "Photo" | "Emoji"
-  content     String?
-  photoUrl    String?
+  inputType    String   // "Text" | "Photo" | "Emoji"
+  content      String?
+  photoUrl     String?
+
+  // Music attachment (iTunes metadata)
+  musicTitle   String?
+  musicArtist  String?
+  musicArtwork String?  // artworkUrl100 from iTunes API
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
