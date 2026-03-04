@@ -36,7 +36,7 @@ model User {
 model Log {
   id          String   @id @default(uuid())
   receiptId   Int      @default(autoincrement())
-  user        User     @relation(fields: [userId], references: [id])
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId      String
   
   date        String   // Stored as YYYY-MM-DD
@@ -56,11 +56,13 @@ model Log {
   updatedAt   DateTime @updatedAt
 
   @@unique([userId, date]) // Enforces one log per day per user
+  @@index([userId])
+  @@index([date])
 }
 
 model WeeklyReport {
   id            String   @id @default(uuid())
-  user          User     @relation(fields: [userId], references: [id])
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId        String
   
   weekLabel     String   // e.g. "Week 1"
@@ -74,6 +76,7 @@ model WeeklyReport {
   createdAt     DateTime @default(now())
 
   @@unique([userId, startDate])
+  @@index([userId])
 }
 
 model Achievement {
@@ -81,7 +84,7 @@ model Achievement {
   userId      String
   titleId     String
 
-  user        User     @relation(fields: [userId], references: [id])
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   unlockedAt  DateTime @default(now())
 
   @@unique([userId, titleId])
@@ -95,17 +98,19 @@ model Friendship {
   notifyOnUpdate Boolean  @default(true)
   createdAt      DateTime @default(now())
 
-  user           User     @relation("UserFriendships", fields: [userId], references: [id])
-  friend         User     @relation("FriendUserships", fields: [friendId], references: [id])
+  user           User     @relation("UserFriendships", fields: [userId], references: [id], onDelete: Cascade)
+  friend         User     @relation("FriendUserships", fields: [friendId], references: [id], onDelete: Cascade)
   
   @@unique([userId, friendId])
+  @@index([userId, status])
+  @@index([friendId, status])
 }
 
 model FriendGroup {
   id        String        @id @default(uuid())
   ownerId   String
   name      String
-  owner     User          @relation("UserFriendGroups", fields: [ownerId], references: [id])
+  owner     User          @relation("UserFriendGroups", fields: [ownerId], references: [id], onDelete: Cascade)
   members   GroupMember[]
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt

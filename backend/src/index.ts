@@ -15,6 +15,7 @@ import { z, ZodSchema } from 'zod';
 import fs from 'fs';
 import cron from 'node-cron';
 import nodemailer from 'nodemailer';
+import helmet from 'helmet';
 
 dotenv.config();
 
@@ -92,8 +93,14 @@ const uploadLimiter = rateLimit({
   message: { success: false, error: 'Too many uploads, please slow down.' }
 });
 
+const allowedOrigins = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : [];
+// Base security headers
+app.use(helmet({ crossOriginResourcePolicy: false })); // Allow cross-origin images (avatars, receipts)
+
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
+  origin: allowedOrigins.length > 0 ? allowedOrigins : true, // true echoes the request origin instead of wildcard
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
@@ -456,10 +463,8 @@ app.get('/api/users/profile/stats', authenticateToken, async (req: any, res) => 
 app.delete('/api/users/profile', authenticateToken, async (req: any, res) => {
   try {
     const userId = req.user.id;
-    // Prisma cascades usually handled via schema, but we do manual just in case 
-    // unless schema supports onDelete: Cascade (which it doesn't currently)
-    await prisma.log.deleteMany({ where: { userId } });
-    await prisma.weeklyReport.deleteMany({ where: { userId } });
+    // Relies on `onDelete: Cascade` configured in schema.prisma for relations
+    // like logs, friendships, reports, and achievements to cleanly wipe all user data.
     await prisma.user.delete({ where: { id: userId } });
 
     res.json({ success: true, message: 'Account shredded' });
@@ -748,6 +753,10 @@ app.put('/api/friends/accept', authenticateToken, async (req: any, res) => {
 app.get('/api/friends/feed', authenticateToken, async (req: any, res) => {
   try {
     const userId = req.user.id;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 15;
+    const skip = (page - 1) * limit;
+
     const friendships = await prisma.friendship.findMany({
       where: {
         OR: [{ userId, status: 'accepted' }, { friendId: userId, status: 'accepted' }]
@@ -755,7 +764,10 @@ app.get('/api/friends/feed', authenticateToken, async (req: any, res) => {
       include: {
         user: { select: { id: true, username: true, avatarUrl: true, selectedTitle: true } },
         friend: { select: { id: true, username: true, avatarUrl: true, selectedTitle: true } }
-      }
+      },
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'desc' }
     });
 
     const pendingRequests = await prisma.friendship.findMany({
@@ -1211,9 +1223,14 @@ cron.schedule('0 9 * * 0', generateWeeklyMontagesForAllUsers, {
 
 console.log('[CRON] Weekly montage scheduler registered (Sundays 9:00 AM ET).');
 
-app.listen(PORT, () => {
-  console.log(`
-  ╔═══════════════════════════════════════════════╗
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => {
+    console.log(`
+    ╔═══════════════════════════════════════════════╗
   ║                                               ║
   ║   🧾 The Receipt API Server                   ║
   ║   Running on port ${PORT}                        ║
@@ -1221,7 +1238,11 @@ app.listen(PORT, () => {
   ║   Prisma DB: Connected                        ║
   ║                                               ║
   ╚═══════════════════════════════════════════════╝
+  🚀 Ready to receive receipts.
   `);
-});
+  });
+}
+
+export { app, prisma };
 
 export default app;
