@@ -575,6 +575,357 @@ app.get('/api/reports/:reportId/montage', async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+// ----------------------------------------------------
+// FRIENDS & ACCOUNTABILITY
+// ----------------------------------------------------
+
+app.get('/api/friends/search', authenticateToken, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    const query = req.query.q as string;
+    if (!query || query.trim().length < 3) {
+      return res.json({ success: true, data: [] });
+    }
+
+    const users = await prisma.user.findMany({
+      where: {
+        username: { contains: query, mode: 'insensitive' },
+        NOT: { id: userId }
+      },
+      select: { id: true, username: true, avatarUrl: true, selectedTitle: true }
+    });
+
+    const results = await Promise.all(users.map(async (u) => {
+      const existing = await prisma.friendship.findFirst({
+        where: {
+          OR: [
+            { userId, friendId: u.id },
+            { userId: u.id, friendId: userId }
+          ]
+        }
+      });
+      return { ...u, friendshipStatus: existing?.status || 'none', senderId: existing?.userId };
+    }));
+
+    res.json({ success: true, data: results });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/friends/request', authenticateToken, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    const { friendId } = req.body;
+
+    if (userId === friendId) return res.status(400).json({ success: false, error: 'Cannot friend yourself' });
+
+    const existing = await prisma.friendship.findFirst({
+      where: {
+        OR: [{ userId, friendId }, { userId: friendId, friendId: userId }]
+      }
+    });
+
+    if (existing) return res.status(400).json({ success: false, error: 'Friendship or request already exists' });
+
+    const friendship = await prisma.friendship.create({
+      data: { userId, friendId, status: 'pending' }
+    });
+
+    res.json({ success: true, data: friendship });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.put('/api/friends/accept', authenticateToken, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    const { friendshipId, accept } = req.body; // accept is boolean
+
+    const friendship = await prisma.friendship.findUnique({ where: { id: friendshipId } });
+    if (!friendship || friendship.friendId !== userId) {
+      return res.status(403).json({ success: false, error: 'Invalid request' });
+    }
+
+    if (accept) {
+      const updated = await prisma.friendship.update({
+        where: { id: friendshipId },
+        data: { status: 'accepted' }
+      });
+      res.json({ success: true, data: updated });
+    } else {
+      await prisma.friendship.delete({ where: { id: friendshipId } });
+      res.json({ success: true, message: 'Request denied' });
+    }
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/friends/feed', authenticateToken, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    const friendships = await prisma.friendship.findMany({
+      where: {
+        OR: [{ userId, status: 'accepted' }, { friendId: userId, status: 'accepted' }]
+      },
+      include: {
+        user: { select: { id: true, username: true, avatarUrl: true, selectedTitle: true } },
+        friend: { select: { id: true, username: true, avatarUrl: true, selectedTitle: true } }
+      }
+    });
+
+    const pendingRequests = await prisma.friendship.findMany({
+      where: { friendId: userId, status: 'pending' },
+      include: {
+        user: { select: { id: true, username: true, avatarUrl: true, selectedTitle: true } }
+      }
+    });
+
+    let today = req.query.localDate as string;
+    if (!today) today = new Date().toISOString().split('T')[0] || '';
+
+    const todayDateObj = new Date(today);
+    todayDateObj.setUTCHours(0, 0, 0, 0);
+    const yesterdayDateObj = new Date(todayDateObj);
+    yesterdayDateObj.setUTCDate(yesterdayDateObj.getUTCDate() - 1);
+    const yesterday = yesterdayDateObj.toISOString().split('T')[0];
+
+    const feedPromises = friendships.map(async (f) => {
+      const isSender = f.userId === userId;
+      const friendProfile = isSender ? f.friend : f.user;
+
+      const logs = await prisma.log.findMany({
+        where: { userId: friendProfile.id },
+        orderBy: { date: 'desc' },
+        select: { date: true }
+      });
+
+      let currentStreak = 0;
+      let hasSettledToday = false;
+      const totalEntries = logs.length;
+
+      if (totalEntries > 0) {
+        const mostRecentLogDate = logs[0]?.date || '';
+        if (mostRecentLogDate === today) hasSettledToday = true;
+
+        if (mostRecentLogDate === today || mostRecentLogDate === yesterday) {
+          let streak = 0;
+          let checkDate = mostRecentLogDate;
+          for (const log of logs) {
+            if (log.date === checkDate) {
+              streak++;
+              const prev = new Date(checkDate);
+              prev.setUTCHours(0, 0, 0, 0);
+              prev.setUTCDate(prev.getUTCDate() - 1);
+              checkDate = prev.toISOString().split('T')[0] || '';
+            } else {
+              break;
+            }
+          }
+          currentStreak = streak;
+        }
+      }
+
+      let longestStreak = 0;
+      let tempStreak = 1;
+      if (totalEntries > 0) {
+        const sortedDates = logs.map(l => l.date).sort();
+        for (let i = 1; i < sortedDates.length; i++) {
+          const prev = new Date(sortedDates[i - 1]!);
+          const curr = new Date(sortedDates[i]!);
+          const diff = (curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24);
+          if (Math.round(diff) === 1) {
+            tempStreak++;
+            longestStreak = Math.max(longestStreak, tempStreak);
+          } else {
+            tempStreak = 1;
+          }
+        }
+        longestStreak = Math.max(longestStreak, currentStreak, 1);
+      }
+
+      const XP_PER_LOG = 20;
+      const XP_PER_STREAK_DAY = 5;
+      const totalXp = (totalEntries * XP_PER_LOG) + (longestStreak * XP_PER_STREAK_DAY);
+      const level = Math.floor(Math.sqrt(totalXp / 100)) + 1;
+
+      let todayLog = null;
+      if (hasSettledToday) {
+        todayLog = await prisma.log.findFirst({
+          where: { userId: friendProfile.id, date: today },
+          select: {
+            id: true,
+            inputType: true,
+            title: true,
+            location: true,
+            content: true,
+            photoUrl: true,
+            musicTitle: true,
+            musicArtist: true,
+            musicArtwork: true
+          }
+        });
+      }
+
+      return {
+        id: friendProfile.id,
+        friendshipId: f.id,
+        username: friendProfile.username,
+        avatarUrl: friendProfile.avatarUrl,
+        selectedTitle: friendProfile.selectedTitle,
+        hasSettledToday,
+        currentStreak,
+        level,
+        logsCount: totalEntries,
+        notifyOnUpdate: f.notifyOnUpdate,
+        todayLog
+      };
+    });
+
+    const feedUnsorted = await Promise.all(feedPromises);
+
+    // Custom sort: People who settled today bubble to the top, ordered by streak length.
+    const feed = feedUnsorted.sort((a, b) => {
+      if (a.hasSettledToday === b.hasSettledToday) return b.currentStreak - a.currentStreak;
+      return a.hasSettledToday ? -1 : 1;
+    });
+
+    const requests = pendingRequests.map(r => ({
+      friendshipId: r.id,
+      id: r.user.id,
+      username: r.user.username,
+      avatarUrl: r.user.avatarUrl,
+      selectedTitle: r.user.selectedTitle
+    }));
+
+    res.json({ success: true, data: { feed, requests } });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete('/api/friends/remove/:friendshipId', authenticateToken, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    const friendshipId = parseInt(req.params.friendshipId);
+
+    const friendship = await prisma.friendship.findUnique({ where: { id: friendshipId } });
+    if (!friendship) return res.status(404).json({ success: false, error: 'Friendship not found' });
+
+    if (friendship.userId !== userId && friendship.friendId !== userId) {
+      return res.status(403).json({ success: false, error: 'Unauthorized to remove this friendship' });
+    }
+
+    await prisma.friendship.delete({ where: { id: friendshipId } });
+    res.json({ success: true, message: 'Friend removed successfully' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.put('/api/friends/notifications/:friendshipId', authenticateToken, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    const friendshipId = parseInt(req.params.friendshipId);
+    const { notifyOnUpdate } = req.body;
+
+    const friendship = await prisma.friendship.findUnique({ where: { id: friendshipId } });
+    if (!friendship) return res.status(404).json({ success: false, error: 'Friendship not found' });
+
+    if (friendship.userId !== userId && friendship.friendId !== userId) {
+      return res.status(403).json({ success: false, error: 'Unauthorized to modify this friendship' });
+    }
+
+    const updated = await prisma.friendship.update({
+      where: { id: friendshipId },
+      data: { notifyOnUpdate }
+    });
+
+    res.json({ success: true, data: updated });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/friends/groups', authenticateToken, async (req: any, res) => {
+  try {
+    const ownerId = req.user.id;
+    const { name } = req.body;
+    if (!name) return res.status(400).json({ success: false, error: 'Group name required' });
+
+    const group = await prisma.friendGroup.create({
+      data: { ownerId, name }
+    });
+    res.json({ success: true, data: group });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/friends/groups', authenticateToken, async (req: any, res) => {
+  try {
+    const ownerId = req.user.id;
+    const groups = await prisma.friendGroup.findMany({
+      where: { ownerId },
+      include: {
+        members: {
+          include: {
+            user: { select: { id: true, username: true, avatarUrl: true, selectedTitle: true } }
+          }
+        }
+      }
+    });
+    res.json({ success: true, data: groups });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/friends/groups/:groupId/members', authenticateToken, async (req: any, res) => {
+  try {
+    const ownerId = req.user.id;
+    const { groupId } = req.params;
+    const { userId } = req.body;
+
+    const group = await prisma.friendGroup.findUnique({ where: { id: groupId } });
+    if (!group || group.ownerId !== ownerId) return res.status(403).json({ success: false, error: 'Unauthorized' });
+
+    const member = await prisma.groupMember.create({
+      data: { groupId, userId }
+    });
+    res.json({ success: true, data: member });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete('/api/friends/groups/:groupId/members/:userId', authenticateToken, async (req: any, res) => {
+  try {
+    const ownerId = req.user.id;
+    const { groupId, userId } = req.params;
+
+    const group = await prisma.friendGroup.findUnique({ where: { id: groupId } });
+    if (!group || group.ownerId !== ownerId) return res.status(403).json({ success: false, error: 'Unauthorized' });
+
+    await prisma.groupMember.deleteMany({
+      where: { groupId, userId }
+    });
+    res.json({ success: true, message: 'Member removed from group' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/check', async (req, res) => {
+  try {
+    const sage = await prisma.user.findUnique({ where: { username: 'sage_master' } });
+    if (!sage) return res.send("No sage");
+    const logs = await prisma.log.findMany({ where: { userId: sage.id } });
+    res.json({ logs });
+  } catch (e: any) { res.json({ error: e.message }); }
+});
 
 app.get('/health', async (req, res) => {
   try {

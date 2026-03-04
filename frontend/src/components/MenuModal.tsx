@@ -17,9 +17,10 @@ type MenuModalProps = {
   onNavigateToAccount?: () => void;
   onNavigateToDataPrivacy?: () => void;
   onNavigateToAboutHelp?: () => void;
+  onNavigateToSocial?: () => void;
 };
 
-export function MenuModal({ visible, onClose, onLogout, onNavigateToProfile, onNavigateToCalendar, onNavigateToWeeklyReport, onNavigateToNotifications, onNavigateToAccount, onNavigateToDataPrivacy, onNavigateToAboutHelp }: MenuModalProps) {
+export function MenuModal({ visible, onClose, onLogout, onNavigateToProfile, onNavigateToCalendar, onNavigateToWeeklyReport, onNavigateToNotifications, onNavigateToAccount, onNavigateToDataPrivacy, onNavigateToAboutHelp, onNavigateToSocial }: MenuModalProps) {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const { colors } = useTheme();
   const styles = React.useMemo(() => getStyles(colors), [colors]);
@@ -45,10 +46,9 @@ export function MenuModal({ visible, onClose, onLogout, onNavigateToProfile, onN
 
               <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
-                {/* Profile */}
                 <View style={styles.section}>
                   <Typography variant="bold" size="small" color={colors.textSecondary} style={styles.sectionTitle}>
-                    IDENTITY
+                    YOUR SPHERE
                   </Typography>
                   <TouchableOpacity
                     style={styles.menuItem}
@@ -59,6 +59,16 @@ export function MenuModal({ visible, onClose, onLogout, onNavigateToProfile, onN
                   >
                     <Feather name="user" size={20} color={colors.textPrimary} style={styles.menuIcon} />
                     <Typography variant="medium" color={colors.textPrimary}>Profile & Stats</Typography>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => {
+                      onClose();
+                      onNavigateToSocial?.();
+                    }}
+                  >
+                    <Feather name="users" size={20} color={colors.textPrimary} style={styles.menuIcon} />
+                    <Typography variant="medium" color={colors.textPrimary}>Social Feed</Typography>
                   </TouchableOpacity>
                 </View>
 

@@ -242,6 +242,7 @@ export function AccountScreen({ navigation }: AccountScreenProps) {
         onNavigateToAccount={() => { setMenuVisible(false); }}
         onNavigateToDataPrivacy={() => { setMenuVisible(false); setTimeout(() => navigation.navigate('DataPrivacy'), 300); }}
         onNavigateToAboutHelp={() => { setMenuVisible(false); setTimeout(() => navigation.navigate('AboutHelp'), 300); }}
+        onNavigateToSocial={() => { setMenuVisible(false); setTimeout(() => navigation.navigate('Social'), 300); }}
       />
     </SafeAreaView>
   );

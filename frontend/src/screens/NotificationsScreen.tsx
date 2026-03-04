@@ -242,6 +242,7 @@ export function NotificationsScreen({ navigation }: NotificationsScreenProps) {
         onNavigateToAccount={() => navigation.navigate('Account')}
         onNavigateToDataPrivacy={() => navigation.navigate('DataPrivacy')}
         onNavigateToAboutHelp={() => navigation.navigate('AboutHelp')}
+        onNavigateToSocial={() => navigation.navigate('Social')}
       />
     </SafeAreaView >
   );

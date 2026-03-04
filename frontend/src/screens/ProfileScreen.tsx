@@ -227,8 +227,8 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
             </View>
           </View>
           <Button
-            title="Invite friends"
-            onPress={() => { }}
+            title="View Social Feed"
+            onPress={() => navigation.navigate('Social')}
             variant="primary"
             style={styles.actionButton}
           />
@@ -296,6 +296,8 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
         onNavigateToAccount={() => navigation.navigate('Account')}
         onNavigateToDataPrivacy={() => navigation.navigate('DataPrivacy')}
         onNavigateToAboutHelp={() => navigation.navigate('AboutHelp')}
+        onNavigateToSocial={() => navigation.navigate('Social')}
+        onNavigateToProfile={() => console.log('Already on Profile')}
       />
 
       {/* Username Edit Modal */}

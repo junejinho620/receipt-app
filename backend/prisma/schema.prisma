@@ -20,6 +20,12 @@ model User {
   logs          Log[]
   weeklyReports WeeklyReport[]
   achievements  Achievement[]
+  
+  friendships   Friendship[]  @relation("UserFriendships")
+  friendOf      Friendship[]  @relation("FriendUserships")
+  
+  friendGroups  FriendGroup[] @relation("UserFriendGroups")
+  groupMembers  GroupMember[] @relation("UserGroupMembers")
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -77,4 +83,38 @@ model Achievement {
   unlockedAt  DateTime @default(now())
 
   @@unique([userId, titleId])
+}
+
+model Friendship {
+  id             Int      @id @default(autoincrement())
+  userId         String   
+  friendId       String   
+  status         String   @default("pending") // "pending" or "accepted"
+  notifyOnUpdate Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  user           User     @relation("UserFriendships", fields: [userId], references: [id])
+  friend         User     @relation("FriendUserships", fields: [friendId], references: [id])
+  
+  @@unique([userId, friendId])
+}
+
+model FriendGroup {
+  id        String        @id @default(uuid())
+  ownerId   String
+  name      String
+  owner     User          @relation("UserFriendGroups", fields: [ownerId], references: [id])
+  members   GroupMember[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model GroupMember {
+  id        Int         @id @default(autoincrement())
+  groupId   String
+  userId    String      // the friend added to this group
+  group     FriendGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user      User        @relation("UserGroupMembers", fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([groupId, userId])
 }

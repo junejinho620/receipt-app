@@ -14,6 +14,7 @@ import { NotificationsScreen } from '../screens/NotificationsScreen';
 import { AccountScreen } from '../screens/AccountScreen';
 import { DataPrivacyScreen } from '../screens/DataPrivacyScreen';
 import { AboutHelpScreen } from '../screens/AboutHelpScreen';
+import { SocialScreen } from '../screens/SocialScreen';
 import { useAuth } from '../context/AuthContext';
 
 export type RootStackParamList = {
@@ -30,6 +31,7 @@ export type RootStackParamList = {
   Notifications: undefined;
   DataPrivacy: undefined;
   AboutHelp: undefined;
+  Social: undefined;
   WeeklyMontage: { weekId: string; title: string; range: string };
 };
 
@@ -60,6 +62,7 @@ export function AppNavigator() {
             <Stack.Screen name="Notifications" component={NotificationsScreen} />
             <Stack.Screen name="DataPrivacy" component={DataPrivacyScreen} />
             <Stack.Screen name="AboutHelp" component={AboutHelpScreen} />
+            <Stack.Screen name="Social" component={SocialScreen} />
             <Stack.Screen name="WeeklyMontage" component={WeeklyMontageScreen} />
             <Stack.Screen name="InteractiveCanvas" component={InteractiveCanvasScreen} />
           </>

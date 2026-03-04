@@ -591,6 +591,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
         onNavigateToAccount={() => navigation.navigate('Account')}
         onNavigateToDataPrivacy={() => navigation.navigate('DataPrivacy')}
         onNavigateToAboutHelp={() => navigation.navigate('AboutHelp')}
+        onNavigateToSocial={() => navigation.navigate('Social')}
       />
 
       {/* Music Search Modal */}
