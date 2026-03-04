@@ -55,13 +55,23 @@ export function DataPrivacyScreen({ navigation }: DataPrivacyScreenProps) {
     }
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     setIsExporting(true);
-    // Simulate export delay
-    setTimeout(() => {
+    try {
+      // Trigger the export endpoint — it returns a JSON download
+      const response = await api.get('/api/users/export', { responseType: 'json' });
+      // Since mobile can't trigger browser downloads directly, show the data summary
+      const { logs, weeklyReports, achievements, profile } = response.data;
+      Alert.alert(
+        'Export Ready ✓',
+        `Your data archive includes:\n• ${logs?.length ?? 0} log entries\n• ${weeklyReports?.length ?? 0} weekly reports\n• ${achievements?.length ?? 0} achievements\n\nFor a full JSON download, visit: ${api.defaults.baseURL}/api/users/export from a browser while logged in.`,
+        [{ text: 'Got it', style: 'default' }]
+      );
+    } catch (error: any) {
+      Alert.alert('Export Failed', error?.response?.data?.error || 'Could not generate export. Please try again.');
+    } finally {
       setIsExporting(false);
-      Alert.alert('Archive Generated', 'A secure link to download your data archive has been sent to your registered email address.');
-    }, 2500);
+    }
   };
 
   const handleDeleteAccount = () => {

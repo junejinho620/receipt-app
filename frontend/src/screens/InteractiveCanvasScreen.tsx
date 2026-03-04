@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -8,7 +8,10 @@ import {
   ScrollView,
   TextInput,
   Alert,
+  Share,
 } from 'react-native';
+import ViewShot from 'react-native-view-shot';
+import * as MediaLibrary from 'expo-media-library';
 import { Feather } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -33,6 +36,7 @@ type InputType = 'Text' | 'Photo';
 
 export function InteractiveCanvasScreen({ navigation }: InteractiveCanvasScreenProps) {
   const { user } = useAuth();
+  const viewShotRef = useRef<ViewShot>(null);
   const [selectedInput, setSelectedInput] = useState<InputType>('Text');
   const [textContent, setTextContent] = useState('');
   const [logTitle, setLogTitle] = useState('');
@@ -40,6 +44,7 @@ export function InteractiveCanvasScreen({ navigation }: InteractiveCanvasScreenP
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const [unlockedAchievements, setUnlockedAchievements] = useState<string[]>([]);
 
   const hasContent = selectedInput === 'Text'
@@ -104,6 +109,30 @@ export function InteractiveCanvasScreen({ navigation }: InteractiveCanvasScreenP
     }
   };
 
+  const handleShareReceipt = async () => {
+    if (!viewShotRef.current) return;
+    setSharing(true);
+    try {
+      const uri = await (viewShotRef.current as any).capture();
+      // Ask for media library permission to save
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      await Share.share({
+        url: uri,
+        message: 'My daily receipt — logged with Receipt 📝',
+        title: 'Share Receipt',
+      });
+      if (status === 'granted') {
+        await MediaLibrary.saveToLibraryAsync(uri);
+      }
+    } catch (e: any) {
+      if (e.message !== 'User did not share') {
+        Alert.alert('Share Failed', 'Could not capture the receipt image.');
+      }
+    } finally {
+      setSharing(false);
+    }
+  };
+
   const handleSignUp = () => {
     setShowModal(false);
     navigation.navigate('Auth');
@@ -132,72 +161,74 @@ export function InteractiveCanvasScreen({ navigation }: InteractiveCanvasScreenP
           </View>
 
           <View style={styles.canvasContainer}>
-            <View style={styles.receiptPaper}>
-              <View style={styles.receiptHeader}>
-                <Typography variant="mono" size="small" color={colors.textSecondary} centered>
-                  *** START OF LOG ***
-                </Typography>
-                <Typography variant="bold" color={colors.textPrimary} centered style={{ marginTop: 8 }}>
-                  {new Date().toLocaleDateString(undefined, {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  }).toUpperCase()}
-                </Typography>
-                <View style={styles.dashedLine} />
-              </View>
-
-              {/* Title & Location Header for Receipt */}
-              <View style={styles.receiptMetadata}>
-                <TextInput
-                  placeholder="Title"
-                  placeholderTextColor={colors.textTertiary}
-                  value={logTitle}
-                  onChangeText={setLogTitle}
-                  style={styles.receiptTitleInput}
-                />
-                <View style={styles.receiptLocationRow}>
-                  <Feather name="map-pin" size={12} color={colors.textSecondary} />
-                  <TextInput
-                    placeholder="Add location"
-                    placeholderTextColor={colors.textTertiary}
-                    value={location}
-                    onChangeText={setLocation}
-                    style={styles.receiptLocationInput}
-                  />
+            <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 1 }}>
+              <View style={styles.receiptPaper}>
+                <View style={styles.receiptHeader}>
+                  <Typography variant="mono" size="small" color={colors.textSecondary} centered>
+                    *** START OF LOG ***
+                  </Typography>
+                  <Typography variant="bold" color={colors.textPrimary} centered style={{ marginTop: 8 }}>
+                    {new Date().toLocaleDateString(undefined, {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    }).toUpperCase()}
+                  </Typography>
+                  <View style={styles.dashedLine} />
                 </View>
-                <View style={styles.dashedLine} />
-              </View>
 
-              {selectedInput === 'Text' ? (
-                <TextInput
-                  placeholder="Type your thoughts..."
-                  value={textContent}
-                  onChangeText={setTextContent}
-                  multiline
-                  style={styles.receiptInput}
-                  placeholderTextColor={colors.textTertiary}
-                  textAlignVertical="top"
-                />
-              ) : (
-                <TouchableOpacity onPress={handlePhotoPlaceholder} style={styles.photoPlaceholder}>
-                  {!!photoUri ? (
-                    <Typography size="h1">📸</Typography>
-                  ) : (
-                    <Typography variant="medium" color={colors.textSecondary}>Tap to Capture</Typography>
-                  )}
-                </TouchableOpacity>
-              )}
+                {/* Title & Location Header for Receipt */}
+                <View style={styles.receiptMetadata}>
+                  <TextInput
+                    placeholder="Title"
+                    placeholderTextColor={colors.textTertiary}
+                    value={logTitle}
+                    onChangeText={setLogTitle}
+                    style={styles.receiptTitleInput}
+                  />
+                  <View style={styles.receiptLocationRow}>
+                    <Feather name="map-pin" size={12} color={colors.textSecondary} />
+                    <TextInput
+                      placeholder="Add location"
+                      placeholderTextColor={colors.textTertiary}
+                      value={location}
+                      onChangeText={setLocation}
+                      style={styles.receiptLocationInput}
+                    />
+                  </View>
+                  <View style={styles.dashedLine} />
+                </View>
 
-              <View style={styles.receiptFooter}>
-                <View style={styles.dashedLine} />
-                <Typography variant="mono" size="small" color={colors.textSecondary} centered style={{ marginTop: 8 }}>
-                  *** END OF LOG ***
-                </Typography>
-                <View style={styles.barcode} />
+                {selectedInput === 'Text' ? (
+                  <TextInput
+                    placeholder="Type your thoughts..."
+                    value={textContent}
+                    onChangeText={setTextContent}
+                    multiline
+                    style={styles.receiptInput}
+                    placeholderTextColor={colors.textTertiary}
+                    textAlignVertical="top"
+                  />
+                ) : (
+                  <TouchableOpacity onPress={handlePhotoPlaceholder} style={styles.photoPlaceholder}>
+                    {!!photoUri ? (
+                      <Typography size="h1">📸</Typography>
+                    ) : (
+                      <Typography variant="medium" color={colors.textSecondary}>Tap to Capture</Typography>
+                    )}
+                  </TouchableOpacity>
+                )}
+
+                <View style={styles.receiptFooter}>
+                  <View style={styles.dashedLine} />
+                  <Typography variant="mono" size="small" color={colors.textSecondary} centered style={{ marginTop: 8 }}>
+                    *** END OF LOG ***
+                  </Typography>
+                  <View style={styles.barcode} />
+                </View>
               </View>
-            </View>
+            </ViewShot>
           </View>
 
           {/* Tools */}
@@ -236,11 +267,18 @@ export function InteractiveCanvasScreen({ navigation }: InteractiveCanvasScreenP
             <Button
               title="Print Receipt"
               onPress={handlePrintReceipt}
-              disabled={!hasContent || loading}
+              disabled={!hasContent || loading || sharing}
               loading={loading}
               variant="primary"
-              style={{ width: '100%' }}
+              style={{ flex: 1, marginRight: 10 }}
             />
+            <TouchableOpacity
+              style={[styles.shareBtn, (!hasContent || sharing) && { opacity: 0.4 }]}
+              onPress={handleShareReceipt}
+              disabled={!hasContent || sharing}
+            >
+              <Feather name={sharing ? 'loader' : 'share-2'} size={18} color="#FFF" />
+            </TouchableOpacity>
           </View>
 
         </ScrollView>
@@ -382,5 +420,15 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  shareBtn: {
+    backgroundColor: '#374151',
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

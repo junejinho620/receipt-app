@@ -27,6 +27,8 @@ model User {
   friendGroups  FriendGroup[] @relation("UserFriendGroups")
   groupMembers  GroupMember[] @relation("UserGroupMembers")
 
+  expoPushToken String?  // Expo push notification token
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }

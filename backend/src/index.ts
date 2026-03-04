@@ -13,6 +13,8 @@ import { rateLimit } from 'express-rate-limit';
 import sharp from 'sharp';
 import { z, ZodSchema } from 'zod';
 import fs from 'fs';
+import cron from 'node-cron';
+import nodemailer from 'nodemailer';
 
 dotenv.config();
 
@@ -1025,6 +1027,189 @@ app.get('/health', async (req, res) => {
     });
   }
 });
+
+// ----------------------------------------------------
+// PUSH NOTIFICATIONS (Expo Push API)
+// ----------------------------------------------------
+
+// Helper: send a push notification to one Expo push token
+async function sendPushNotification(expoPushToken: string, title: string, body: string, data: Record<string, any> = {}) {
+  if (!expoPushToken || !expoPushToken.startsWith('ExponentPushToken')) return;
+  try {
+    await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'accept-encoding': 'gzip, deflate' },
+      body: JSON.stringify({ to: expoPushToken, sound: 'default', title, body, data }),
+    });
+  } catch (e) {
+    console.error('[Push] Failed to send notification:', e);
+  }
+}
+
+// POST /api/users/push-token — register or update device push token
+app.post('/api/users/push-token', authenticateToken, async (req: any, res) => {
+  try {
+    const { expoPushToken } = req.body;
+    if (!expoPushToken) return res.status(400).json({ success: false, error: 'expoPushToken is required' });
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { expoPushToken }
+    });
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ----------------------------------------------------
+// DATA EXPORT
+// ----------------------------------------------------
+
+// GET /api/users/export — download all user data as JSON
+app.get('/api/users/export', authenticateToken, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, username: true, selectedTitle: true, createdAt: true }
+    });
+    const logs = await prisma.log.findMany({ where: { userId }, orderBy: { date: 'desc' } });
+    const reports = await prisma.weeklyReport.findMany({ where: { userId }, orderBy: { startDate: 'desc' } });
+    const achievements = await prisma.achievement.findMany({ where: { userId } });
+
+    const exportData = {
+      exportedAt: new Date().toISOString(),
+      profile: user,
+      logs,
+      weeklyReports: reports,
+      achievements,
+    };
+
+    res.setHeader('Content-Disposition', `attachment; filename="receipt-export-${userId}-${Date.now()}.json"`);
+    res.setHeader('Content-Type', 'application/json');
+    res.json(exportData);
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ----------------------------------------------------
+// LEGAL PAGES (TOS & Privacy Policy)
+// ----------------------------------------------------
+const legalDir = path.join(process.cwd(), 'legal');
+if (!fs.existsSync(legalDir)) fs.mkdirSync(legalDir, { recursive: true });
+
+// Auto-generate placeholder legal files if they don't exist
+const tosPath = path.join(legalDir, 'tos.html');
+const privacyPath = path.join(legalDir, 'privacy.html');
+
+const legalPageHtml = (title: string, content: string) => `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${title} — Receipt</title>
+<style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:720px;margin:48px auto;padding:0 24px;color:#1a1a1a;line-height:1.7}h1{font-size:2rem;margin-bottom:8px}p{color:#4B5563}a{color:#16A34A}</style>
+</head><body><h1>${title}</h1><p>Last updated: March 2026</p>${content}
+<p style="margin-top:48px;color:#9CA3AF">© 2026 Receipt. All rights reserved.</p></body></html>`;
+
+if (!fs.existsSync(tosPath)) {
+  fs.writeFileSync(tosPath, legalPageHtml('Terms of Service',
+    `<p>Welcome to Receipt. By using this app you agree to these terms.</p>
+    <h2>1. Use of Service</h2><p>Receipt is a personal journaling and expense tracking application. You may not abuse, exploit, or reverse-engineer any part of the service.</p>
+    <h2>2. Your Data</h2><p>You retain full ownership of all logs and data you create. We do not sell your data to third parties.</p>
+    <h2>3. Account Deletion</h2><p>You may delete your account at any time from Settings → Data & Privacy. All data is permanently deleted within 30 days.</p>
+    <h2>4. Changes</h2><p>We may update these terms. Continued use constitutes acceptance.</p>
+    <p>Questions? Contact us at <a href="mailto:legal@receipt.app">legal@receipt.app</a></p>`
+  ));
+}
+
+if (!fs.existsSync(privacyPath)) {
+  fs.writeFileSync(privacyPath, legalPageHtml('Privacy Policy',
+    `<p>Your privacy matters. Here is exactly what we collect and why.</p>
+    <h2>What We Collect</h2><p>Email, username, daily log entries, and device push tokens (for notifications). We do not capture location without explicit permission.</p>
+    <h2>How We Use It</h2><p>Solely to provide the Receipt service — streak tracking, weekly montages, and friend accountability features.</p>
+    <h2>What We Never Do</h2><p>Sell your data. Read your private logs. Share your data with advertisers.</p>
+    <h2>Data Deletion</h2><p>Request full deletion via the app or by emailing <a href="mailto:privacy@receipt.app">privacy@receipt.app</a>.</p>
+    <h2>Cookies</h2><p>We use only essential session tokens (JWT). No third-party tracking cookies.</p>`
+  ));
+}
+
+app.use('/legal', express.static(legalDir));
+
+// ----------------------------------------------------
+// AUTOMATED WEEKLY MONTAGES (Cron Scheduler)
+// ----------------------------------------------------
+
+async function generateWeeklyMontagesForAllUsers() {
+  console.log('[CRON] Running weekly montage generation...');
+  const today = new Date();
+  const endDate = new Date(today);
+  endDate.setDate(today.getDate() - 1); // up to yesterday (Saturday)
+  const startDate = new Date(endDate);
+  startDate.setDate(endDate.getDate() - 6); // 7 days back (Sunday)
+
+  const startStr = startDate.toISOString().split('T')[0]!;
+  const endStr = endDate.toISOString().split('T')[0]!;
+
+  // Get all users with at least 1 log in the past week
+  const activeUserIds = await prisma.log.findMany({
+    where: { date: { gte: startStr, lte: endStr } },
+    select: { userId: true },
+    distinct: ['userId'],
+  });
+
+  const weekNumber = Math.ceil((today.getTime() - new Date(today.getFullYear(), 0, 1).getTime()) / (7 * 24 * 60 * 60 * 1000));
+  const dateRangeLabel = `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} ~ ${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+
+  let generated = 0;
+  for (const { userId } of activeUserIds) {
+    try {
+      // Count unique logged days
+      const logs = await prisma.log.findMany({
+        where: { userId, date: { gte: startStr, lte: endStr } },
+        select: { date: true },
+      });
+      const totalReceipts = new Set(logs.map(l => l.date)).size;
+      if (totalReceipts === 0) continue;
+
+      // Upsert (skip if already exists for this period)
+      await prisma.weeklyReport.upsert({
+        where: { userId_startDate: { userId, startDate } },
+        create: {
+          userId,
+          weekLabel: `Week ${weekNumber}`,
+          dateRange: dateRangeLabel,
+          startDate,
+          endDate,
+          totalReceipts,
+          subtitle: `You logged ${totalReceipts} day${totalReceipts !== 1 ? 's' : ''} this week.`,
+        },
+        update: { totalReceipts },
+      });
+
+      // Send push notification if token is available
+      const user = await prisma.user.findUnique({ where: { id: userId }, select: { expoPushToken: true } });
+      if (user?.expoPushToken) {
+        await sendPushNotification(
+          user.expoPushToken,
+          '📜 Your Weekly Montage is Ready',
+          `You settled ${totalReceipts} day${totalReceipts !== 1 ? 's' : ''} this week. Tap to revisit your receipts.`,
+          { screen: 'WeeklyReport' }
+        );
+      }
+      generated++;
+    } catch (e: any) {
+      if (e.code !== 'P2002') console.error(`[CRON] Failed for userId ${userId}:`, e.message);
+    }
+  }
+  console.log(`[CRON] Generated ${generated} montages for week ${weekNumber}.`);
+}
+
+// Schedule: every Sunday at 9:00 AM server local time
+cron.schedule('0 9 * * 0', generateWeeklyMontagesForAllUsers, {
+  timezone: 'America/New_York'
+});
+
+console.log('[CRON] Weekly montage scheduler registered (Sundays 9:00 AM ET).');
 
 app.listen(PORT, () => {
   console.log(`

@@ -7,6 +7,7 @@ import {
   SafeAreaView,
   Linking,
   Animated,
+  Platform,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -15,6 +16,10 @@ import { Typography } from '../components/ui/Typography';
 import { MenuModal } from '../components/MenuModal';
 import { useTheme } from '../context/ThemeContext';
 import { layout } from '../theme/layout';
+
+const BACKEND = Platform.OS === 'ios' ? 'http://localhost:3000' : 'http://10.0.2.2:3000';
+const TOS_URL = `${BACKEND}/legal/tos.html`;
+const PRIVACY_URL = `${BACKEND}/legal/privacy.html`;
 
 type AboutHelpScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'AboutHelp'>;
@@ -176,13 +181,13 @@ export function AboutHelpScreen({ navigation }: AboutHelpScreenProps) {
 
         {/* Legal */}
         <View style={styles.legalRow}>
-          <TouchableOpacity onPress={() => { }}>
+          <TouchableOpacity onPress={() => Linking.openURL(TOS_URL)}>
             <Typography variant="regular" size="small" color={colors.textSecondary} style={styles.legalLink}>
               Terms of Service
             </Typography>
           </TouchableOpacity>
           <Typography variant="regular" size="small" color={colors.textSecondary}> · </Typography>
-          <TouchableOpacity onPress={() => { }}>
+          <TouchableOpacity onPress={() => Linking.openURL(PRIVACY_URL)}>
             <Typography variant="regular" size="small" color={colors.textSecondary} style={styles.legalLink}>
               Privacy Policy
             </Typography>
