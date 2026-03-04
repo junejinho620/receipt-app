@@ -1,5 +1,6 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { View, StyleSheet } from 'react-native';
 import { SplashScreen } from '../screens/SplashScreen';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { InteractiveCanvasScreen } from '../screens/InteractiveCanvasScreen';
@@ -16,6 +17,8 @@ import { DataPrivacyScreen } from '../screens/DataPrivacyScreen';
 import { AboutHelpScreen } from '../screens/AboutHelpScreen';
 import { SocialScreen } from '../screens/SocialScreen';
 import { useAuth } from '../context/AuthContext';
+import { ErrorBoundary } from '../components/ErrorBoundary';
+import { OfflineBanner } from '../components/OfflineBanner';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -41,40 +44,46 @@ export function AppNavigator() {
   const { user, isLoading } = useAuth();
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator
-        screenOptions={{
-          headerShown: false,
-          animation: 'fade',
-        }}
-      >
-        {isLoading ? (
-          // Show splash while we check AsyncStorage
-          <Stack.Screen name="Splash" component={SplashScreen} />
-        ) : user ? (
-          // Authenticated screens
-          <>
-            <Stack.Screen name="Home" component={HomeScreen} />
-            <Stack.Screen name="Profile" component={ProfileScreen} />
-            <Stack.Screen name="Calendar" component={CalendarScreen} />
-            <Stack.Screen name="WeeklyReport" component={WeeklyReportScreen} />
-            <Stack.Screen name="Account" component={AccountScreen} />
-            <Stack.Screen name="Notifications" component={NotificationsScreen} />
-            <Stack.Screen name="DataPrivacy" component={DataPrivacyScreen} />
-            <Stack.Screen name="AboutHelp" component={AboutHelpScreen} />
-            <Stack.Screen name="Social" component={SocialScreen} />
-            <Stack.Screen name="WeeklyMontage" component={WeeklyMontageScreen} />
-            <Stack.Screen name="InteractiveCanvas" component={InteractiveCanvasScreen} />
-          </>
-        ) : (
-          // Unauthenticated screens
-          <>
-            <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-            <Stack.Screen name="Auth" component={AuthScreen} />
-            <Stack.Screen name="Permissions" component={PermissionsScreen} />
-          </>
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
+    <ErrorBoundary>
+      <View style={styles.root}>
+        <NavigationContainer>
+          <Stack.Navigator
+            screenOptions={{
+              headerShown: false,
+              animation: 'fade',
+            }}
+          >
+            {isLoading ? (
+              <Stack.Screen name="Splash" component={SplashScreen} />
+            ) : user ? (
+              <>
+                <Stack.Screen name="Home" component={HomeScreen} />
+                <Stack.Screen name="Profile" component={ProfileScreen} />
+                <Stack.Screen name="Calendar" component={CalendarScreen} />
+                <Stack.Screen name="WeeklyReport" component={WeeklyReportScreen} />
+                <Stack.Screen name="Account" component={AccountScreen} />
+                <Stack.Screen name="Notifications" component={NotificationsScreen} />
+                <Stack.Screen name="DataPrivacy" component={DataPrivacyScreen} />
+                <Stack.Screen name="AboutHelp" component={AboutHelpScreen} />
+                <Stack.Screen name="Social" component={SocialScreen} />
+                <Stack.Screen name="WeeklyMontage" component={WeeklyMontageScreen} />
+                <Stack.Screen name="InteractiveCanvas" component={InteractiveCanvasScreen} />
+              </>
+            ) : (
+              <>
+                <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+                <Stack.Screen name="Auth" component={AuthScreen} />
+                <Stack.Screen name="Permissions" component={PermissionsScreen} />
+              </>
+            )}
+          </Stack.Navigator>
+        </NavigationContainer>
+        <OfflineBanner />
+      </View>
+    </ErrorBoundary>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+});

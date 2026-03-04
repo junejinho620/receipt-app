@@ -8,8 +8,11 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-
 import multer from 'multer';
+import { rateLimit } from 'express-rate-limit';
+import sharp from 'sharp';
+import { z, ZodSchema } from 'zod';
+import fs from 'fs';
 
 dotenv.config();
 
@@ -24,6 +27,69 @@ const app = express();
 const prisma = new PrismaClient({ adapter });
 const PORT = process.env.PORT || 3000;
 
+// ---- Zod Validation Schemas ----
+const SignupSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  username: z.string().min(3, 'Username must be at least 3 characters').max(30).regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
+  password: z.string().min(8, 'Password must be at least 8 characters').regex(/[A-Za-z]/, 'Password must contain at least one letter').regex(/[0-9]/, 'Password must contain at least one number'),
+});
+
+const LoginSchema = z.object({
+  email: z.string().optional(),
+  username: z.string().optional(),
+  password: z.string().min(1, 'Password is required'),
+}).refine(data => data.email || data.username, { message: 'Email or username is required' });
+
+const ProfileUpdateSchema = z.object({
+  username: z.string().min(3).max(30).regex(/^[a-zA-Z0-9_]+$/).optional(),
+  email: z.string().email().optional(),
+  currentPassword: z.string().optional(),
+  newPassword: z.string().min(8).optional(),
+  selectedTitle: z.string().optional(),
+  avatarUrl: z.string().optional(),
+});
+
+const LogCreateSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD'),
+  title: z.string().max(100).optional(),
+  location: z.string().max(200).optional(),
+  inputType: z.enum(['Text', 'Photo', 'Emoji']),
+  content: z.string().max(5000).optional(),
+  photoUrl: z.string().url().optional().or(z.literal('')),
+  musicTitle: z.string().max(200).optional(),
+  musicArtist: z.string().max(200).optional(),
+  musicArtwork: z.string().optional(),
+});
+
+// ---- Validation Middleware ----
+const validateBody = (schema: ZodSchema) => (req: any, res: any, next: any) => {
+  const result = schema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json({
+      success: false,
+      error: result.error.issues[0]?.message || 'Invalid request body',
+      details: result.error.issues.map((e: z.ZodIssue) => ({ field: e.path.join('.'), message: e.message }))
+    });
+  }
+  req.body = result.data;
+  next();
+};
+
+// ---- Rate Limiters ----
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many requests, please try again after 15 minutes.' }
+});
+
+const uploadLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 30,
+  message: { success: false, error: 'Too many uploads, please slow down.' }
+});
+
 app.use(cors({
   origin: process.env.CORS_ORIGIN || '*',
   credentials: true
@@ -35,31 +101,48 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // Configure Multer storage
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, path.join(process.cwd(), 'uploads/'));
-  },
-  filename: (req, file, cb) => {
-    // Generate a unique filename: timestamp-random.ext
-    const ext = path.extname(file.originalname) || '.jpg';
-    const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1e9) + ext;
-    cb(null, uniqueName);
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+
+const storage = multer.memoryStorage(); // Use memory storage so we can compress with sharp
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB max
+  fileFilter: (_req, file, cb) => {
+    if (ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`Unsupported file type: ${file.mimetype}. Only JPEG, PNG, WebP and HEIC are allowed.`));
+    }
   }
 });
-const upload = multer({ storage });
 
-// Media Upload Endpoint
-app.post('/api/upload', upload.single('file'), (req, res) => {
+// Ensure uploads directory exists
+const uploadsDir = path.join(process.cwd(), 'uploads');
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+
+// Media Upload Endpoint — with sharp compression
+app.post('/api/upload', uploadLimiter, upload.single('file'), async (req: any, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, error: 'No file uploaded' });
     }
-    // req.get('host') dynamically gets the local IP/port the requester used (e.g. 192.168.1.100:3000)
-    const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+
+    const ext = '.webp'; // Normalize all uploads to WebP for size efficiency
+    const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1e9) + ext;
+    const outputPath = path.join(uploadsDir, uniqueName);
+
+    // Compress and convert to WebP (max 1200px wide, 80% quality)
+    await sharp(req.file.buffer)
+      .resize({ width: 1200, withoutEnlargement: true })
+      .webp({ quality: 80 })
+      .toFile(outputPath);
+
+    const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${uniqueName}`;
     res.json({ success: true, url: fileUrl });
   } catch (error: any) {
     console.error('Upload Error:', error);
-    res.status(500).json({ success: false, error: 'Server error during upload' });
+    const status = error.message?.includes('Unsupported file type') ? 415 : 500;
+    res.status(status).json({ success: false, error: error.message || 'Server error during upload' });
   }
 });
 
@@ -82,21 +165,19 @@ const authenticateToken = (req: any, res: any, next: any) => {
   });
 };
 
-app.post('/api/auth/signup', async (req, res) => {
+app.post('/api/auth/signup', authLimiter, validateBody(SignupSchema), async (req, res) => {
   try {
     const { email, username, password, avatarUrl, selectedTitle } = req.body;
 
-    // Hash password
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
     const user = await prisma.user.create({
-      data: { email, username, passwordHash, avatarUrl, selectedTitle }
+      data: { email: email.toLowerCase().trim(), username: username.trim(), passwordHash, avatarUrl, selectedTitle }
     });
 
     const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
-
-    res.json({ success: true, token, data: user });
+    res.status(201).json({ success: true, token, data: { id: user.id, email: user.email, username: user.username, avatarUrl: user.avatarUrl, selectedTitle: user.selectedTitle } });
   } catch (error: any) {
     if (error.code === 'P2002') {
       const field = error.meta?.target?.[0] ?? 'email or username';
@@ -106,16 +187,15 @@ app.post('/api/auth/signup', async (req, res) => {
   }
 });
 
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', authLimiter, validateBody(LoginSchema), async (req, res) => {
   try {
     const { email, username, password } = req.body;
 
-    // Find user by email or username
     const user = await prisma.user.findFirst({
       where: {
         OR: [
-          { email: email || '' },
-          { username: username || '' }
+          { email: (email || '').toLowerCase().trim() },
+          { username: (username || '').trim() }
         ]
       }
     });
@@ -130,8 +210,7 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
-
-    res.json({ success: true, token, data: user });
+    res.json({ success: true, token, data: { id: user.id, email: user.email, username: user.username, avatarUrl: user.avatarUrl, selectedTitle: user.selectedTitle } });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -255,7 +334,7 @@ app.get('/api/users/:id', authenticateToken, async (req, res) => {
 });
 
 // PUT /api/users/profile — update username, email, password
-app.put('/api/users/profile', authenticateToken, async (req: any, res) => {
+app.put('/api/users/profile', authenticateToken, validateBody(ProfileUpdateSchema), async (req: any, res) => {
   try {
     const userId = req.user.id;
     const { username, email, currentPassword, newPassword, selectedTitle } = req.body;
@@ -390,9 +469,10 @@ app.delete('/api/users/profile', authenticateToken, async (req: any, res) => {
 // ----------------------------------------------------
 // LOGS (RECEIPTS)
 // ----------------------------------------------------
-app.post('/api/logs', async (req, res) => {
+app.post('/api/logs', authenticateToken, validateBody(LogCreateSchema), async (req: any, res) => {
   try {
-    const { userId, date, title, location, inputType, content, photoUrl, musicTitle, musicArtist, musicArtwork } = req.body;
+    const userId = req.user.id;
+    const { date, title, location, inputType, content, photoUrl, musicTitle, musicArtist, musicArtwork } = req.body;
     const log = await prisma.log.create({
       data: { userId, date, title, location, inputType, content, photoUrl, musicTitle, musicArtist, musicArtwork }
     });
