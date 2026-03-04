@@ -109,6 +109,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
+// Serve legal documents statically
+app.use('/legal', express.static(path.join(process.cwd(), 'public/legal')));
+
 // Configure Multer storage
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
 
@@ -1223,8 +1226,9 @@ cron.schedule('0 9 * * 0', generateWeeklyMontagesForAllUsers, {
 
 console.log('[CRON] Weekly montage scheduler registered (Sundays 9:00 AM ET).');
 
+
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 if (process.env.NODE_ENV !== 'test') {

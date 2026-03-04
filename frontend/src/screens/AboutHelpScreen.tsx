@@ -8,6 +8,7 @@ import {
   Linking,
   Animated,
   Platform,
+  Alert,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -18,8 +19,8 @@ import { useTheme } from '../context/ThemeContext';
 import { layout } from '../theme/layout';
 
 const BACKEND = Platform.OS === 'ios' ? 'http://localhost:3000' : 'http://10.0.2.2:3000';
-const TOS_URL = `${BACKEND}/legal/tos.html`;
-const PRIVACY_URL = `${BACKEND}/legal/privacy.html`;
+const TOS_URL = `${BACKEND}/legal/tos.html?cb=${Date.now()}`;
+const PRIVACY_URL = `${BACKEND}/legal/privacy.html?cb=${Date.now()}`;
 
 type AboutHelpScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'AboutHelp'>;
@@ -99,8 +100,17 @@ export function AboutHelpScreen({ navigation }: AboutHelpScreenProps) {
     Animated.timing(heroOp, { toValue: 1, duration: 700, delay: 60, useNativeDriver: true }).start();
   }, []);
 
-  const handleContact = () => {
-    Linking.openURL('mailto:support@receipt-app.com?subject=Support');
+  const handleContact = async () => {
+    const url = 'mailto:contact@sydnical.com?subject=Support';
+    try {
+      await Linking.openURL(url);
+    } catch (err) {
+      Alert.alert(
+        'Contact Us',
+        'Please email us at:\n\ncontact@sydnical.com',
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   return (
@@ -194,7 +204,7 @@ export function AboutHelpScreen({ navigation }: AboutHelpScreenProps) {
           </TouchableOpacity>
         </View>
         <Typography variant="regular" size="small" color={colors.textSecondary} style={styles.copyright}>
-          © 2026 Sydnical Tech
+          © 2026 Sydnical
         </Typography>
 
       </ScrollView>

@@ -20,6 +20,7 @@ type WeeklyMontageScreenProps = {
 type MontageDay = {
   id: string;
   title: string;
+  logTitle?: string;
   type: string;
   preview: string;
   location: string;
@@ -46,6 +47,7 @@ export function WeeklyMontageScreen({ navigation, route }: WeeklyMontageScreenPr
           const formattedDays = response.data.data.logs.map((log: any) => ({
             id: log.id,
             title: new Date(log.date).toLocaleDateString('en-US', { weekday: 'long' }),
+            logTitle: log.title,
             type: log.inputType,
             preview: log.inputType === 'Text' ? log.content : (log.inputType === 'Emoji' ? log.content : '[Photo]'),
             location: log.location || 'Unknown',
@@ -110,12 +112,20 @@ export function WeeklyMontageScreen({ navigation, route }: WeeklyMontageScreenPr
         {days.map((day) => (
           <View key={day.id} style={styles.slide}>
             <View style={styles.card}>
-              <Typography variant="mono" size="small" color={colors.textTertiary} style={{ marginBottom: 16 }}>
+              <Typography variant="mono" size="small" color={colors.textTertiary} style={{ marginBottom: 4 }}>
                 {day.title.split(' ')[0].toUpperCase()}
               </Typography>
 
+              {day.logTitle ? (
+                <Typography variant="bold" size="h2" color={colors.textPrimary} style={{ marginBottom: 16 }}>
+                  {day.logTitle}
+                </Typography>
+              ) : (
+                <View style={{ marginBottom: 16 }} />
+              )}
+
               {day.type === 'Emoji' ? (
-                <Typography size="h1" style={{ fontSize: 80, marginBottom: 24 }}>{day.preview}</Typography>
+                <Typography size="h1" style={{ fontSize: 80, lineHeight: 90, marginBottom: 24 }}>{day.preview}</Typography>
               ) : (
                 <Typography variant="bold" size="h1" color={colors.textPrimary} style={{ marginBottom: 16 }}>
                   "{day.preview}"
@@ -169,17 +179,30 @@ export function WeeklyMontageScreen({ navigation, route }: WeeklyMontageScreenPr
             <ScrollView showsVerticalScrollIndicator={false} style={styles.summaryList}>
               {days.map((day) => (
                 <View key={day.id} style={styles.summaryItemRow}>
-                  <Typography variant="mono" size="caption" color={colors.textSecondary} style={{ width: 40 }}>
+                  <Typography variant="mono" size="caption" color={colors.textSecondary} style={{ width: 40, marginTop: 2 }}>
                     {day.title.split(' ')[0].slice(0, 3).toUpperCase()}
                   </Typography>
                   <View style={styles.summaryItemContent}>
+                    {day.logTitle ? (
+                      <Typography variant="bold" size="small" color={colors.textPrimary}>
+                        {day.logTitle}
+                      </Typography>
+                    ) : null}
+
                     {day.type === 'Emoji' ? (
-                      <Typography>{day.preview}</Typography>
+                      <Typography style={{ marginTop: day.logTitle ? 4 : 0 }}>{day.preview}</Typography>
                     ) : (
-                      <Typography variant="medium" size="small" color={colors.textPrimary} numberOfLines={1}>
+                      <Typography variant="medium" size="small" color={colors.textPrimary} style={{ marginTop: day.logTitle ? 4 : 0 }}>
                         {day.preview}
                       </Typography>
                     )}
+
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+                      <Feather name="map-pin" size={12} color={colors.textTertiary} style={{ marginRight: 4 }} />
+                      <Typography variant="medium" size="caption" color={colors.textTertiary}>
+                        {day.location}
+                      </Typography>
+                    </View>
                   </View>
                 </View>
               ))}
@@ -246,10 +269,9 @@ const getStyles = (colors: any) => StyleSheet.create({
   },
   slide: {
     width,
-    height,
+    height: '100%',
     justifyContent: 'center',
     padding: layout.spacing.xl,
-    paddingTop: 100, // accommodate dynamic header
   },
   card: {
     backgroundColor: colors.surface,
@@ -284,12 +306,12 @@ const getStyles = (colors: any) => StyleSheet.create({
   },
   summaryList: {
     flexGrow: 0,
-    maxHeight: 200,
+    maxHeight: 450,
   },
   summaryItemRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
+    alignItems: 'flex-start',
+    marginBottom: 20,
   },
   summaryItemContent: {
     flex: 1,

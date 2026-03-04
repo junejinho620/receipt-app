@@ -1,4 +1,3 @@
-```javascript
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -127,7 +126,7 @@ export const SocialScreen: React.FC<SocialScreenProps> = ({ navigation }) => {
   const fetchFeed = async (pageNum = 1) => {
     try {
       if (pageNum === 1) setLoading(true);
-      const res = await api.get(`/ api / friends / feed ? page = ${ pageNum }& limit=15`);
+      const res = await api.get(`/api/friends/feed?page=${pageNum}&limit=15`);
       if (res.data.success) {
         const newFeed = res.data.data.feed;
         if (newFeed.length < 15) setHasMore(false);
@@ -155,7 +154,7 @@ export const SocialScreen: React.FC<SocialScreenProps> = ({ navigation }) => {
   const handleSearch = async () => {
     try {
       setSearchLoading(true);
-      const res = await api.get(`/ api / friends / search ? q = ${ searchQuery.trim() } `);
+      const res = await api.get(`/api/friends/search?q=${searchQuery.trim()}`);
       if (res.data.success) {
         setSearchResults(res.data.data);
       }
@@ -193,7 +192,7 @@ export const SocialScreen: React.FC<SocialScreenProps> = ({ navigation }) => {
   const handleRemoveFriend = async (friendshipId: number, username: string) => {
     Alert.alert(
       "Remove Friend",
-      `Are you sure you want to remove ${ username } from your friends list ? `,
+      `Are you sure you want to remove ${username} from your friends list?`,
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -201,7 +200,7 @@ export const SocialScreen: React.FC<SocialScreenProps> = ({ navigation }) => {
           style: "destructive",
           onPress: async () => {
             try {
-              const res = await api.delete(`/ api / friends / remove / ${ friendshipId } `);
+              const res = await api.delete(`/api/friends/remove/${friendshipId}`);
               if (res.data.success) {
                 fetchFeed();
               }
@@ -231,71 +230,186 @@ export const SocialScreen: React.FC<SocialScreenProps> = ({ navigation }) => {
   const handleToggleGroupMember = async (groupId: string, userId: string, isMember: boolean) => {
     try {
       if (isMember) {
-        await api.delete(`/ api / friends / groups / ${ groupId } /members/${ userId } `);
+        await api.delete(`/api/friends/groups/${groupId}/members/${userId}`);
       } else {
-        await api.post(`/ api / friends / groups / ${ groupId }/members`, { userId });
+        await api.post(`/api/friends/groups/${groupId}/members`, { userId });
       }
-fetchFeed(); // Refresh the groups payload
+      fetchFeed(); // Refresh the groups payload
     } catch (err: any) {
-  Alert.alert('Error', err.response?.data?.error || 'Could not modify group member');
-}
+      Alert.alert('Error', err.response?.data?.error || 'Could not modify group member');
+    }
   };
 
-const handleToggleNotifications = async (friendshipId: number, current: boolean) => {
-  try {
-    const res = await api.put(`/api/friends/notifications/${friendshipId}`, { notifyOnUpdate: !current });
-    if (res.data.success) {
-      fetchFeed();
+  const handleToggleNotifications = async (friendshipId: number, current: boolean) => {
+    try {
+      const res = await api.put(`/api/friends/notifications/${friendshipId}`, { notifyOnUpdate: !current });
+      if (res.data.success) {
+        fetchFeed();
+      }
+    } catch (err: any) {
+      Alert.alert('Error', err.response?.data?.error || 'Could not update notification settings');
     }
-  } catch (err: any) {
-    Alert.alert('Error', err.response?.data?.error || 'Could not update notification settings');
-  }
-};
+  };
 
-const renderFeedTab = () => {
-  if (loading) return <View style={styles.center}><ActivityIndicator color={colors.primary} /></View>;
-  if (feed.length === 0) {
+  const renderFeedTab = () => {
+    if (loading) return <View style={styles.center}><ActivityIndicator color={colors.primary} /></View>;
+    if (feed.length === 0) {
+      return (
+        <View style={styles.emptyState}>
+          <Feather name="users" size={48} color={colors.textTertiary} style={{ marginBottom: 16 }} />
+          <Typography size="body" color={colors.textSecondary} style={{ textAlign: 'center' }}>
+            You haven't partnered with anyone yet. Add friends to track their streaks!
+          </Typography>
+        </View>
+      );
+    }
+
     return (
-      <View style={styles.emptyState}>
-        <Feather name="users" size={48} color={colors.textTertiary} style={{ marginBottom: 16 }} />
-        <Typography size="body" color={colors.textSecondary} style={{ textAlign: 'center' }}>
-          You haven't partnered with anyone yet. Add friends to track their streaks!
-        </Typography>
-      </View>
-    );
-  }
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingHorizontal: layout.spacing.l, paddingTop: layout.spacing.m, paddingBottom: layout.spacing.xl }}
+        showsVerticalScrollIndicator={false}
+      >
+        {feed.map(friend => (
+          <TouchableOpacity
+            key={friend.id}
+            activeOpacity={0.7}
+            onPress={() => {
+              if (friend.hasSettledToday && friend.todayLog) {
+                setSelectedFriendLog({ friendName: friend.username, log: friend.todayLog });
+                setViewedFriendIds(prev => {
+                  const updated = new Set(prev).add(friend.id);
+                  AsyncStorage.setItem('viewedFriendFeeds', JSON.stringify(Array.from(updated))).catch(() => { });
+                  return updated;
+                });
+              } else if (!friend.hasSettledToday) {
+                Alert.alert(`${friend.username} hasn't settled today!`, `Check back later to see their latest log.`);
+              } else if (friend.hasSettledToday) {
+                Alert.alert("Debug Info", `User Settled: Yes\nLog Exists: No\n\nBackend likely didn't append the todayLog sub-object into the JSON feed response.`);
+              }
+            }}
+          >
+            <Card style={styles.friendCardContent} variant="default">
+              <View style={styles.friendCardLeft}>
+                <View style={[
+                  styles.avatarWrapper,
+                  friend.hasSettledToday && (viewedFriendIds.has(friend.id) ? { borderColor: colors.border } : styles.avatarSettledWrapper)
+                ]}>
+                  {friend.avatarUrl ? (
+                    <FastImage source={{ uri: friend.avatarUrl }} style={styles.avatarSmall} />
+                  ) : (
+                    <View style={styles.avatarPlaceholderSmall}>
+                      <Feather name="user" size={16} color={colors.surface} />
+                    </View>
+                  )}
+                  {friend.hasSettledToday && (
+                    <View style={[
+                      styles.settledCheckmarkBadge,
+                      { borderColor: colors.surface },
+                      viewedFriendIds.has(friend.id) && { backgroundColor: colors.border }
+                    ]}>
+                      <Feather name="star" size={10} color="#FFF" />
+                    </View>
+                  )}
+                </View>
+                <View style={{ marginLeft: 12 }}>
+                  <Typography variant="bold" size="body">{friend.username}</Typography>
+                  <Typography variant="medium" size="small" color={colors.textSecondary}>
+                    {friend.selectedTitle ? friend.selectedTitle : 'Lv. ' + (friend.level || 1)}
+                  </Typography>
+                </View>
+              </View>
 
-  return (
-    <ScrollView
-      style={{ flex: 1 }}
-      contentContainerStyle={{ paddingHorizontal: layout.spacing.l, paddingTop: layout.spacing.m, paddingBottom: layout.spacing.xl }}
-      showsVerticalScrollIndicator={false}
-    >
-      {feed.map(friend => (
-        <TouchableOpacity
-          key={friend.id}
-          activeOpacity={0.7}
-          onPress={() => {
-            if (friend.hasSettledToday && friend.todayLog) {
-              setSelectedFriendLog({ friendName: friend.username, log: friend.todayLog });
-              setViewedFriendIds(prev => {
-                const updated = new Set(prev).add(friend.id);
-                AsyncStorage.setItem('viewedFriendFeeds', JSON.stringify(Array.from(updated))).catch(() => { });
-                return updated;
-              });
-            } else if (!friend.hasSettledToday) {
-              Alert.alert(`${friend.username} hasn't settled today!`, `Check back later to see their latest log.`);
-            } else if (friend.hasSettledToday) {
-              Alert.alert("Debug Info", `User Settled: Yes\nLog Exists: No\n\nBackend likely didn't append the todayLog sub-object into the JSON feed response.`);
-            }
-          }}
-        >
-          <Card style={styles.friendCardContent} variant="default">
-            <View style={styles.friendCardLeft}>
-              <View style={[
-                styles.avatarWrapper,
-                friend.hasSettledToday && (viewedFriendIds.has(friend.id) ? { borderColor: colors.border } : styles.avatarSettledWrapper)
-              ]}>
+              <View style={styles.friendCardRight}>
+                <View style={styles.streakBadge}>
+                  <Typography size="small" variant="bold" color="#F97316">🔥 {friend.currentStreak || 0}</Typography>
+                </View>
+              </View>
+            </Card>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    );
+  };
+
+  const renderFriendsTab = () => {
+    return (
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingHorizontal: layout.spacing.l, paddingTop: layout.spacing.m, paddingBottom: layout.spacing.xl }}
+        showsVerticalScrollIndicator={false}
+      >
+        {requests.length > 0 && (
+          <View style={{ marginBottom: 24 }}>
+            <Typography variant="bold" size="body" style={{ marginBottom: 12 }}>Pending Requests</Typography>
+            {requests.map(req => (
+              <Card key={req.id} style={styles.requestCardContent} variant="default">
+                <View style={styles.friendCardLeft}>
+                  {req.avatarUrl ? (
+                    <FastImage source={{ uri: req.avatarUrl }} style={styles.avatarSmall} />
+                  ) : (
+                    <View style={styles.avatarPlaceholderSmall}>
+                      <Feather name="user" size={16} color={colors.surface} />
+                    </View>
+                  )}
+                  <Typography variant="bold" size="body" style={{ marginLeft: 12 }}>{req.username}</Typography>
+                </View>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <TouchableOpacity style={styles.acceptBtn} onPress={() => handleAcceptRequest(req.friendshipId, true)}>
+                    <Typography variant="bold" size="small" color={colors.surface}>Accept</Typography>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.rejectBtn} onPress={() => handleAcceptRequest(req.friendshipId, false)}>
+                    <Feather name="x" size={16} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                </View>
+              </Card>
+            ))}
+          </View>
+        )}
+
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, justifyContent: 'space-between' }}>
+          <Typography variant="bold" size="body">My Friends</Typography>
+          <TouchableOpacity onPress={() => setShowCreateGroupModal(true)} style={{ padding: 4 }}>
+            <Feather name="plus-circle" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
+        {groups.length > 0 && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
+            <TouchableOpacity
+              style={[styles.groupChip, selectedGroupId === null && styles.groupChipActive]}
+              onPress={() => setSelectedGroupId(null)}
+            >
+              <Typography size="small" variant="bold" color={selectedGroupId === null ? colors.surface : colors.textSecondary}>All</Typography>
+            </TouchableOpacity>
+            {groups.map(g => (
+              <TouchableOpacity
+                key={g.id}
+                style={[styles.groupChip, selectedGroupId === g.id && styles.groupChipActive]}
+                onPress={() => setSelectedGroupId(g.id)}
+              >
+                <Typography size="small" variant="bold" color={selectedGroupId === g.id ? colors.surface : colors.textSecondary}>{g.name}</Typography>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
+
+        {(() => {
+          const displayedFriends = selectedGroupId
+            ? feed.filter(f => groups.find(g => g.id === selectedGroupId)?.members.some((m: any) => m.userId === f.id))
+            : feed;
+
+          if (displayedFriends.length === 0 && requests.length === 0) {
+            return (
+              <Typography size="body" color={colors.textSecondary} style={{ marginTop: 8 }}>
+                {selectedGroupId ? "No friends in this group." : "You haven't added any friends yet. Check the Add tab!"}
+              </Typography>
+            );
+          }
+
+          return displayedFriends.map(friend => (
+            <Card key={friend.id} style={styles.searchCardContent} variant="default">
+              <View style={styles.friendCardLeft}>
                 {friend.avatarUrl ? (
                   <FastImage source={{ uri: friend.avatarUrl }} style={styles.avatarSmall} />
                 ) : (
@@ -303,447 +417,332 @@ const renderFeedTab = () => {
                     <Feather name="user" size={16} color={colors.surface} />
                   </View>
                 )}
-                {friend.hasSettledToday && (
-                  <View style={[
-                    styles.settledCheckmarkBadge,
-                    { borderColor: colors.surface },
-                    viewedFriendIds.has(friend.id) && { backgroundColor: colors.border }
-                  ]}>
-                    <Feather name="star" size={10} color="#FFF" />
-                  </View>
-                )}
-              </View>
-              <View style={{ marginLeft: 12 }}>
-                <Typography variant="bold" size="body">{friend.username}</Typography>
-                <Typography variant="medium" size="small" color={colors.textSecondary}>
-                  {friend.selectedTitle ? friend.selectedTitle : 'Lv. ' + (friend.level || 1)}
-                </Typography>
-              </View>
-            </View>
-
-            <View style={styles.friendCardRight}>
-              <View style={styles.streakBadge}>
-                <Typography size="small" variant="bold" color="#F97316">🔥 {friend.currentStreak || 0}</Typography>
-              </View>
-            </View>
-          </Card>
-        </TouchableOpacity>
-      ))}
-    </ScrollView>
-  );
-};
-
-const renderFriendsTab = () => {
-  return (
-    <ScrollView
-      style={{ flex: 1 }}
-      contentContainerStyle={{ paddingHorizontal: layout.spacing.l, paddingTop: layout.spacing.m, paddingBottom: layout.spacing.xl }}
-      showsVerticalScrollIndicator={false}
-    >
-      {requests.length > 0 && (
-        <View style={{ marginBottom: 24 }}>
-          <Typography variant="bold" size="body" style={{ marginBottom: 12 }}>Pending Requests</Typography>
-          {requests.map(req => (
-            <Card key={req.id} style={styles.requestCardContent} variant="default">
-              <View style={styles.friendCardLeft}>
-                {req.avatarUrl ? (
-                  <FastImage source={{ uri: req.avatarUrl }} style={styles.avatarSmall} />
-                ) : (
-                  <View style={styles.avatarPlaceholderSmall}>
-                    <Feather name="user" size={16} color={colors.surface} />
-                  </View>
-                )}
-                <Typography variant="bold" size="body" style={{ marginLeft: 12 }}>{req.username}</Typography>
-              </View>
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                <TouchableOpacity style={styles.acceptBtn} onPress={() => handleAcceptRequest(req.friendshipId, true)}>
-                  <Typography variant="bold" size="small" color={colors.surface}>Accept</Typography>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.rejectBtn} onPress={() => handleAcceptRequest(req.friendshipId, false)}>
-                  <Feather name="x" size={16} color={colors.textSecondary} />
-                </TouchableOpacity>
-              </View>
-            </Card>
-          ))}
-        </View>
-      )}
-
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, justifyContent: 'space-between' }}>
-        <Typography variant="bold" size="body">My Friends</Typography>
-        <TouchableOpacity onPress={() => setShowCreateGroupModal(true)} style={{ padding: 4 }}>
-          <Feather name="plus-circle" size={20} color={colors.textSecondary} />
-        </TouchableOpacity>
-      </View>
-
-      {groups.length > 0 && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
-          <TouchableOpacity
-            style={[styles.groupChip, selectedGroupId === null && styles.groupChipActive]}
-            onPress={() => setSelectedGroupId(null)}
-          >
-            <Typography size="small" variant="bold" color={selectedGroupId === null ? colors.surface : colors.textSecondary}>All</Typography>
-          </TouchableOpacity>
-          {groups.map(g => (
-            <TouchableOpacity
-              key={g.id}
-              style={[styles.groupChip, selectedGroupId === g.id && styles.groupChipActive]}
-              onPress={() => setSelectedGroupId(g.id)}
-            >
-              <Typography size="small" variant="bold" color={selectedGroupId === g.id ? colors.surface : colors.textSecondary}>{g.name}</Typography>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      )}
-
-      {(() => {
-        const displayedFriends = selectedGroupId
-          ? feed.filter(f => groups.find(g => g.id === selectedGroupId)?.members.some((m: any) => m.userId === f.id))
-          : feed;
-
-        if (displayedFriends.length === 0 && requests.length === 0) {
-          return (
-            <Typography size="body" color={colors.textSecondary} style={{ marginTop: 8 }}>
-              {selectedGroupId ? "No friends in this group." : "You haven't added any friends yet. Check the Add tab!"}
-            </Typography>
-          );
-        }
-
-        return displayedFriends.map(friend => (
-          <Card key={friend.id} style={styles.searchCardContent} variant="default">
-            <View style={styles.friendCardLeft}>
-              {friend.avatarUrl ? (
-                <FastImage source={{ uri: friend.avatarUrl }} style={styles.avatarSmall} />
-              ) : (
-                <View style={styles.avatarPlaceholderSmall}>
-                  <Feather name="user" size={16} color={colors.surface} />
-                </View>
-              )}
-              <View style={{ marginLeft: 12 }}>
-                <Typography variant="bold" size="body">{friend.username}</Typography>
-                <Typography size="small" color={colors.textSecondary}>
-                  {friend.selectedTitle || 'Streak: ' + (friend.currentStreak || 0)}
-                </Typography>
-              </View>
-            </View>
-            <TouchableOpacity
-              style={{ padding: 8 }}
-              onPress={() => setShowGroupMenuFor(friend.id)}
-            >
-              <Feather name="more-horizontal" size={20} color={colors.textTertiary} />
-            </TouchableOpacity>
-          </Card>
-        ));
-      })()}
-    </ScrollView>
-  );
-};
-
-const renderAddTab = () => {
-  return (
-    <View style={{ flex: 1 }}>
-      <View style={[styles.searchBar, { marginHorizontal: layout.spacing.l, marginTop: layout.spacing.m }]}>
-        <Feather name="search" size={18} color={colors.textSecondary} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search by username..."
-          placeholderTextColor={colors.textSecondary}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          autoCapitalize="none"
-        />
-      </View>
-
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ paddingHorizontal: layout.spacing.l, paddingBottom: layout.spacing.xl }}
-        showsVerticalScrollIndicator={false}
-      >
-
-        {searchLoading ? (
-          <View style={styles.center}><ActivityIndicator color={colors.primary} /></View>
-        ) : (
-          searchResults.map(user => (
-            <Card key={user.id} style={styles.searchCardContent} variant="default">
-              <View style={styles.friendCardLeft}>
-                {user.avatarUrl ? (
-                  <FastImage source={{ uri: user.avatarUrl }} style={styles.avatarSmall} />
-                ) : (
-                  <View style={styles.avatarPlaceholderSmall}>
-                    <Feather name="user" size={16} color={colors.surface} />
-                  </View>
-                )}
-                <Typography variant="bold" size="body" style={{ marginLeft: 12 }}>{user.username}</Typography>
-              </View>
-
-              {user.friendshipStatus === 'accepted' ? (
-                <View style={styles.statusChip}>
-                  <Typography size="small" color={colors.textSecondary}>Friends</Typography>
-                </View>
-              ) : user.friendshipStatus === 'pending' ? (
-                <View style={styles.statusChip}>
+                <View style={{ marginLeft: 12 }}>
+                  <Typography variant="bold" size="body">{friend.username}</Typography>
                   <Typography size="small" color={colors.textSecondary}>
-                    {user.senderId === currentUserId ? 'Sent' : 'Pending'}
+                    {friend.selectedTitle || 'Streak: ' + (friend.currentStreak || 0)}
                   </Typography>
                 </View>
-              ) : (
-                <TouchableOpacity style={styles.addBtn} onPress={() => handleSendRequest(user.id)}>
-                  <Feather name="user-plus" size={16} color={colors.surface} />
-                </TouchableOpacity>
-              )}
+              </View>
+              <TouchableOpacity
+                style={{ padding: 8 }}
+                onPress={() => setShowGroupMenuFor(friend.id)}
+              >
+                <Feather name="more-horizontal" size={20} color={colors.textTertiary} />
+              </TouchableOpacity>
             </Card>
-          ))
-        )}
+          ));
+        })()}
       </ScrollView>
-    </View>
-  );
-};
+    );
+  };
 
-return (
-  <SafeAreaView style={styles.safeArea}>
-    <View style={styles.header}>
-      <TouchableOpacity style={styles.iconButton} onPress={() => setMenuVisible(true)}>
-        <Feather name="menu" size={24} color={colors.textSecondary} />
-      </TouchableOpacity>
-
-      <View style={styles.headerTitle}>
-        <Typography variant="bold" size="h2" color={colors.textPrimary}>
-          Your Sphere
-        </Typography>
-        <Typography variant="regular" size="small" color={colors.textSecondary}>
-          Social Feed
-        </Typography>
-      </View>
-
-      <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('Home')}>
-        <Feather name="home" size={24} color={colors.textSecondary} />
-      </TouchableOpacity>
-    </View>
-
-    <View style={styles.tabs}>
-      <TouchableOpacity
-        style={[styles.tab, activeTab === 'feed' && styles.activeTab]}
-        onPress={() => setActiveTab('feed')}
-      >
-        <Typography variant="bold" color={activeTab === 'feed' ? colors.primary : colors.textSecondary}>
-          Feed
-        </Typography>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.tab, activeTab === 'friends' && styles.activeTab]}
-        onPress={() => setActiveTab('friends')}
-      >
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Typography variant="bold" color={activeTab === 'friends' ? colors.primary : colors.textSecondary}>
-            Friends
-          </Typography>
-          {requests.length > 0 && (
-            <View style={styles.badge} />
-          )}
-        </View>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.tab, activeTab === 'add' && styles.activeTab]}
-        onPress={() => setActiveTab('add')}
-      >
-        <Typography variant="bold" color={activeTab === 'add' ? colors.primary : colors.textSecondary}>
-          Add
-        </Typography>
-      </TouchableOpacity>
-    </View>
-
-    <View style={styles.tabContent}>
-      {activeTab === 'feed' ? renderFeedTab() : activeTab === 'friends' ? renderFriendsTab() : renderAddTab()}
-    </View>
-
-    {/* Nested Modal to view a Friend's Log Details */}
-    <Modal visible={!!selectedFriendLog} animationType="fade" transparent>
-      <View style={styles.logOverlay}>
-        <View style={styles.logModal}>
-          <View style={styles.logHeader}>
-            <View>
-              <Typography variant="bold" size="h2" style={{ marginBottom: 4 }}>
-                {selectedFriendLog?.log.title || 'Daily Log'}
-              </Typography>
-              <Typography size="body" color={colors.textSecondary}>
-                {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-              </Typography>
-            </View>
-            <TouchableOpacity onPress={() => setSelectedFriendLog(null)} style={styles.logCloseBtn}>
-              <Feather name="x" size={20} color={colors.textPrimary} />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView style={{ marginTop: 16 }} showsVerticalScrollIndicator={false}>
-            {selectedFriendLog?.log.photoUrl && (
-              <FastImage source={{ uri: selectedFriendLog.log.photoUrl as string }} style={styles.logPhoto} />
-            )}
-
-            {selectedFriendLog?.log.content && (
-              <View style={styles.logContentBox}>
-                <Typography size="body" color={colors.textPrimary} style={{ lineHeight: 24 }}>
-                  {selectedFriendLog.log.content}
-                </Typography>
-              </View>
-            )}
-
-            {selectedFriendLog?.log.musicTitle && (
-              <View style={styles.musicCard}>
-                {selectedFriendLog.log.musicArtwork ? (
-                  <FastImage source={{ uri: selectedFriendLog.log.musicArtwork as string }} style={styles.musicArt} />
-                ) : (
-                  <View style={styles.musicIconBox}>
-                    <Feather name="music" size={16} color={colors.primary} />
-                  </View>
-                )}
-                <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Typography variant="bold" size="small">{selectedFriendLog.log.musicTitle}</Typography>
-                  <Typography size="small" color={colors.textSecondary}>{selectedFriendLog.log.musicArtist}</Typography>
-                </View>
-              </View>
-            )}
-
-            {selectedFriendLog?.log.location && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 16 }}>
-                <Feather name="map-pin" size={14} color={colors.textSecondary} />
-                <Typography size="small" color={colors.textSecondary} style={{ marginLeft: 6 }}>
-                  {selectedFriendLog.log.location}
-                </Typography>
-              </View>
-            )}
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
-
-    {/* CREATE GROUP MODAL */}
-    <Modal
-      visible={showCreateGroupModal}
-      transparent
-      animationType="fade"
-    >
-      <TouchableOpacity style={styles.logOverlay} activeOpacity={1} onPress={() => setShowCreateGroupModal(false)}>
-        <View style={styles.logModal}>
-          <View style={{ marginBottom: 20 }}>
-            <Typography variant="bold" size="h3" style={{ marginBottom: 4 }}>Create Group</Typography>
-            <Typography size="body" color={colors.textSecondary}>Organize your friends list</Typography>
-          </View>
+  const renderAddTab = () => {
+    return (
+      <View style={{ flex: 1 }}>
+        <View style={[styles.searchBar, { marginHorizontal: layout.spacing.l, marginTop: layout.spacing.m }]}>
+          <Feather name="search" size={18} color={colors.textSecondary} />
           <TextInput
-            style={styles.textInput}
-            placeholder="Group Name (e.g. Besties)"
-            placeholderTextColor={colors.textTertiary}
-            value={newGroupName}
-            onChangeText={setNewGroupName}
-            autoFocus
+            style={styles.searchInput}
+            placeholder="Search by username..."
+            placeholderTextColor={colors.textSecondary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCapitalize="none"
           />
-          <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 24 }}>
-            <TouchableOpacity onPress={() => setShowCreateGroupModal(false)} style={{ padding: 12 }}>
-              <Typography variant="bold" size="body" color={colors.textSecondary}>Cancel</Typography>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleCreateGroup} style={[styles.primaryButtonBtn, { paddingHorizontal: 20 }]}>
-              <Typography variant="bold" size="body" color="#FFFFFF">Create</Typography>
-            </TouchableOpacity>
-          </View>
         </View>
-      </TouchableOpacity>
-    </Modal>
 
-    {/* FRIEND ACTION MENU MODAL */}
-    <Modal
-      visible={showGroupMenuFor !== null}
-      transparent
-      animationType="fade"
-    >
-      <TouchableOpacity style={styles.logOverlay} activeOpacity={1} onPress={() => setShowGroupMenuFor(null)}>
-        <View style={[styles.logModal, { padding: 0 }]}>
-          <View style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-            <Typography variant="bold" size="body">Friend Options</Typography>
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingHorizontal: layout.spacing.l, paddingBottom: layout.spacing.xl }}
+          showsVerticalScrollIndicator={false}
+        >
+
+          {searchLoading ? (
+            <View style={styles.center}><ActivityIndicator color={colors.primary} /></View>
+          ) : (
+            searchResults.map(user => (
+              <Card key={user.id} style={styles.searchCardContent} variant="default">
+                <View style={styles.friendCardLeft}>
+                  {user.avatarUrl ? (
+                    <FastImage source={{ uri: user.avatarUrl }} style={styles.avatarSmall} />
+                  ) : (
+                    <View style={styles.avatarPlaceholderSmall}>
+                      <Feather name="user" size={16} color={colors.surface} />
+                    </View>
+                  )}
+                  <Typography variant="bold" size="body" style={{ marginLeft: 12 }}>{user.username}</Typography>
+                </View>
+
+                {user.friendshipStatus === 'accepted' ? (
+                  <View style={styles.statusChip}>
+                    <Typography size="small" color={colors.textSecondary}>Friends</Typography>
+                  </View>
+                ) : user.friendshipStatus === 'pending' ? (
+                  <View style={styles.statusChip}>
+                    <Typography size="small" color={colors.textSecondary}>
+                      {user.senderId === currentUserId ? 'Sent' : 'Pending'}
+                    </Typography>
+                  </View>
+                ) : (
+                  <TouchableOpacity style={styles.addBtn} onPress={() => handleSendRequest(user.id)}>
+                    <Feather name="user-plus" size={16} color={colors.surface} />
+                  </TouchableOpacity>
+                )}
+              </Card>
+            ))
+          )}
+        </ScrollView>
+      </View>
+    );
+  };
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.iconButton} onPress={() => setMenuVisible(true)}>
+          <Feather name="menu" size={24} color={colors.textSecondary} />
+        </TouchableOpacity>
+
+        <View style={styles.headerTitle}>
+          <Typography variant="bold" size="h2" color={colors.textPrimary}>
+            Your Sphere
+          </Typography>
+          <Typography variant="regular" size="small" color={colors.textSecondary}>
+            Social Feed
+          </Typography>
+        </View>
+
+        <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('Home')}>
+          <Feather name="home" size={24} color={colors.textSecondary} />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.tabs}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'feed' && styles.activeTab]}
+          onPress={() => setActiveTab('feed')}
+        >
+          <Typography variant="bold" color={activeTab === 'feed' ? colors.primary : colors.textSecondary}>
+            Feed
+          </Typography>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'friends' && styles.activeTab]}
+          onPress={() => setActiveTab('friends')}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Typography variant="bold" color={activeTab === 'friends' ? colors.primary : colors.textSecondary}>
+              Friends
+            </Typography>
+            {requests.length > 0 && (
+              <View style={styles.badge} />
+            )}
           </View>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'add' && styles.activeTab]}
+          onPress={() => setActiveTab('add')}
+        >
+          <Typography variant="bold" color={activeTab === 'add' ? colors.primary : colors.textSecondary}>
+            Add
+          </Typography>
+        </TouchableOpacity>
+      </View>
 
-          <ScrollView style={{ maxHeight: 300 }}>
-            <View style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-              <Typography variant="bold" size="small" color={colors.textSecondary} style={{ marginBottom: 12, textTransform: 'uppercase' }}>Add to Group</Typography>
-              {groups.length === 0 ? (
-                <Typography size="small" color={colors.textTertiary}>No groups created yet.</Typography>
-              ) : (
-                groups.map(g => {
-                  const isMember = g.members.some((m: any) => m.userId === showGroupMenuFor);
-                  return (
-                    <TouchableOpacity
-                      key={g.id}
-                      style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 }}
-                      onPress={() => handleToggleGroupMember(g.id, showGroupMenuFor!, isMember)}
-                    >
-                      <Typography size="body" color={colors.textPrimary}>{g.name}</Typography>
-                      {isMember && <Feather name="check" size={18} color={colors.primary} />}
-                    </TouchableOpacity>
-                  );
-                })
-              )}
+      <View style={styles.tabContent}>
+        {activeTab === 'feed' ? renderFeedTab() : activeTab === 'friends' ? renderFriendsTab() : renderAddTab()}
+      </View>
+
+      {/* Nested Modal to view a Friend's Log Details */}
+      <Modal visible={!!selectedFriendLog} animationType="fade" transparent>
+        <View style={styles.logOverlay}>
+          <View style={styles.logModal}>
+            <View style={styles.logHeader}>
+              <View>
+                <Typography variant="bold" size="h2" style={{ marginBottom: 4 }}>
+                  {selectedFriendLog?.log.title || 'Daily Log'}
+                </Typography>
+                <Typography size="body" color={colors.textSecondary}>
+                  {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                </Typography>
+              </View>
+              <TouchableOpacity onPress={() => setSelectedFriendLog(null)} style={styles.logCloseBtn}>
+                <Feather name="x" size={20} color={colors.textPrimary} />
+              </TouchableOpacity>
             </View>
 
-            {showGroupMenuFor && feed.find(f => f.id === showGroupMenuFor) && (() => {
-              const friendObj = feed.find(f => f.id === showGroupMenuFor)!;
-              return (
-                <TouchableOpacity
-                  style={{ padding: 20, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: colors.border }}
-                  onPress={() => handleToggleNotifications(friendObj.friendshipId, !!friendObj.notifyOnUpdate)}
-                >
-                  <Feather name={friendObj.notifyOnUpdate ? "bell-off" : "bell"} size={18} color={colors.textPrimary} style={{ marginRight: 12 }} />
-                  <Typography size="body" color={colors.textPrimary}>
-                    {friendObj.notifyOnUpdate ? "Mute Notifications" : "Turn On Notifications"}
+            <ScrollView style={{ marginTop: 16 }} showsVerticalScrollIndicator={false}>
+              {selectedFriendLog?.log.photoUrl && (
+                <FastImage source={{ uri: selectedFriendLog.log.photoUrl as string }} style={styles.logPhoto} />
+              )}
+
+              {selectedFriendLog?.log.content && (
+                <View style={styles.logContentBox}>
+                  <Typography size="body" color={colors.textPrimary} style={{ lineHeight: 24 }}>
+                    {selectedFriendLog.log.content}
                   </Typography>
-                </TouchableOpacity>
-              );
-            })()}
+                </View>
+              )}
 
-            <TouchableOpacity
-              style={{ padding: 20, flexDirection: 'row', alignItems: 'center' }}
-              onPress={() => {
-                const friendObj = feed.find(f => f.id === showGroupMenuFor);
-                if (friendObj) {
-                  Alert.alert(
-                    "Remove Friend",
-                    `Are you sure you want to remove ${friendObj.username}?`,
-                    [
-                      { text: "Cancel", style: "cancel" },
-                      {
-                        text: "Remove",
-                        style: "destructive",
-                        onPress: () => {
-                          handleRemoveFriend(friendObj.friendshipId, friendObj.username);
-                          setShowGroupMenuFor(null);
-                        }
-                      }
-                    ]
-                  );
-                } else {
-                  setShowGroupMenuFor(null);
-                }
-              }}
-            >
-              <Feather name="user-x" size={18} color="#DC2626" style={{ marginRight: 12 }} />
-              <Typography size="body" color="#DC2626">Remove Friend</Typography>
-            </TouchableOpacity>
-          </ScrollView>
+              {selectedFriendLog?.log.musicTitle && (
+                <View style={styles.musicCard}>
+                  {selectedFriendLog.log.musicArtwork ? (
+                    <FastImage source={{ uri: selectedFriendLog.log.musicArtwork as string }} style={styles.musicArt} />
+                  ) : (
+                    <View style={styles.musicIconBox}>
+                      <Feather name="music" size={16} color={colors.primary} />
+                    </View>
+                  )}
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Typography variant="bold" size="small">{selectedFriendLog.log.musicTitle}</Typography>
+                    <Typography size="small" color={colors.textSecondary}>{selectedFriendLog.log.musicArtist}</Typography>
+                  </View>
+                </View>
+              )}
+
+              {selectedFriendLog?.log.location && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 16 }}>
+                  <Feather name="map-pin" size={14} color={colors.textSecondary} />
+                  <Typography size="small" color={colors.textSecondary} style={{ marginLeft: 6 }}>
+                    {selectedFriendLog.log.location}
+                  </Typography>
+                </View>
+              )}
+            </ScrollView>
+          </View>
         </View>
-      </TouchableOpacity>
-    </Modal>
+      </Modal>
 
-    <MenuModal
-      visible={menuVisible}
-      onClose={() => setMenuVisible(false)}
-      onLogout={logout ?? (() => { })}
-      onNavigateToProfile={() => { setMenuVisible(false); setTimeout(() => navigation.navigate('Profile'), 300); }}
-      onNavigateToCalendar={() => { setMenuVisible(false); setTimeout(() => navigation.navigate('Calendar'), 300); }}
-      onNavigateToWeeklyReport={() => { setMenuVisible(false); setTimeout(() => navigation.navigate('WeeklyReport'), 300); }}
-      onNavigateToNotifications={() => { setMenuVisible(false); setTimeout(() => navigation.navigate('Notifications'), 300); }}
-      onNavigateToAccount={() => { setMenuVisible(false); setTimeout(() => navigation.navigate('Account'), 300); }}
-      onNavigateToDataPrivacy={() => { setMenuVisible(false); setTimeout(() => navigation.navigate('DataPrivacy'), 300); }}
-      onNavigateToAboutHelp={() => { setMenuVisible(false); setTimeout(() => navigation.navigate('AboutHelp'), 300); }}
-      onNavigateToSocial={() => setMenuVisible(false)}
-    />
-  </SafeAreaView>
-);
+      {/* CREATE GROUP MODAL */}
+      <Modal
+        visible={showCreateGroupModal}
+        transparent
+        animationType="fade"
+      >
+        <TouchableOpacity style={styles.logOverlay} activeOpacity={1} onPress={() => setShowCreateGroupModal(false)}>
+          <View style={styles.logModal}>
+            <View style={{ marginBottom: 20 }}>
+              <Typography variant="bold" size="h3" style={{ marginBottom: 4 }}>Create Group</Typography>
+              <Typography size="body" color={colors.textSecondary}>Organize your friends list</Typography>
+            </View>
+            <TextInput
+              style={styles.textInput}
+              placeholder="Group Name (e.g. Besties)"
+              placeholderTextColor={colors.textTertiary}
+              value={newGroupName}
+              onChangeText={setNewGroupName}
+              autoFocus
+            />
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 24 }}>
+              <TouchableOpacity onPress={() => setShowCreateGroupModal(false)} style={{ padding: 12 }}>
+                <Typography variant="bold" size="body" color={colors.textSecondary}>Cancel</Typography>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleCreateGroup} style={[styles.primaryButtonBtn, { paddingHorizontal: 20 }]}>
+                <Typography variant="bold" size="body" color="#FFFFFF">Create</Typography>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* FRIEND ACTION MENU MODAL */}
+      <Modal
+        visible={showGroupMenuFor !== null}
+        transparent
+        animationType="fade"
+      >
+        <TouchableOpacity style={styles.logOverlay} activeOpacity={1} onPress={() => setShowGroupMenuFor(null)}>
+          <View style={[styles.logModal, { padding: 0 }]}>
+            <View style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+              <Typography variant="bold" size="body">Friend Options</Typography>
+            </View>
+
+            <ScrollView style={{ maxHeight: 300 }}>
+              <View style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+                <Typography variant="bold" size="small" color={colors.textSecondary} style={{ marginBottom: 12, textTransform: 'uppercase' }}>Add to Group</Typography>
+                {groups.length === 0 ? (
+                  <Typography size="small" color={colors.textTertiary}>No groups created yet.</Typography>
+                ) : (
+                  groups.map(g => {
+                    const isMember = g.members.some((m: any) => m.userId === showGroupMenuFor);
+                    return (
+                      <TouchableOpacity
+                        key={g.id}
+                        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 }}
+                        onPress={() => handleToggleGroupMember(g.id, showGroupMenuFor!, isMember)}
+                      >
+                        <Typography size="body" color={colors.textPrimary}>{g.name}</Typography>
+                        {isMember && <Feather name="check" size={18} color={colors.primary} />}
+                      </TouchableOpacity>
+                    );
+                  })
+                )}
+              </View>
+
+              {showGroupMenuFor && feed.find(f => f.id === showGroupMenuFor) && (() => {
+                const friendObj = feed.find(f => f.id === showGroupMenuFor)!;
+                return (
+                  <TouchableOpacity
+                    style={{ padding: 20, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: colors.border }}
+                    onPress={() => handleToggleNotifications(friendObj.friendshipId, !!friendObj.notifyOnUpdate)}
+                  >
+                    <Feather name={friendObj.notifyOnUpdate ? "bell-off" : "bell"} size={18} color={colors.textPrimary} style={{ marginRight: 12 }} />
+                    <Typography size="body" color={colors.textPrimary}>
+                      {friendObj.notifyOnUpdate ? "Mute Notifications" : "Turn On Notifications"}
+                    </Typography>
+                  </TouchableOpacity>
+                );
+              })()}
+
+              <TouchableOpacity
+                style={{ padding: 20, flexDirection: 'row', alignItems: 'center' }}
+                onPress={() => {
+                  const friendObj = feed.find(f => f.id === showGroupMenuFor);
+                  if (friendObj) {
+                    Alert.alert(
+                      "Remove Friend",
+                      `Are you sure you want to remove ${friendObj.username}?`,
+                      [
+                        { text: "Cancel", style: "cancel" },
+                        {
+                          text: "Remove",
+                          style: "destructive",
+                          onPress: () => {
+                            handleRemoveFriend(friendObj.friendshipId, friendObj.username);
+                            setShowGroupMenuFor(null);
+                          }
+                        }
+                      ]
+                    );
+                  } else {
+                    setShowGroupMenuFor(null);
+                  }
+                }}
+              >
+                <Feather name="user-x" size={18} color="#DC2626" style={{ marginRight: 12 }} />
+                <Typography size="body" color="#DC2626">Remove Friend</Typography>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      <MenuModal
+        visible={menuVisible}
+        onClose={() => setMenuVisible(false)}
+        onLogout={logout ?? (() => { })}
+        onNavigateToProfile={() => { setMenuVisible(false); setTimeout(() => navigation.navigate('Profile'), 300); }}
+        onNavigateToCalendar={() => { setMenuVisible(false); setTimeout(() => navigation.navigate('Calendar'), 300); }}
+        onNavigateToWeeklyReport={() => { setMenuVisible(false); setTimeout(() => navigation.navigate('WeeklyReport'), 300); }}
+        onNavigateToNotifications={() => { setMenuVisible(false); setTimeout(() => navigation.navigate('Notifications'), 300); }}
+        onNavigateToAccount={() => { setMenuVisible(false); setTimeout(() => navigation.navigate('Account'), 300); }}
+        onNavigateToDataPrivacy={() => { setMenuVisible(false); setTimeout(() => navigation.navigate('DataPrivacy'), 300); }}
+        onNavigateToAboutHelp={() => { setMenuVisible(false); setTimeout(() => navigation.navigate('AboutHelp'), 300); }}
+        onNavigateToSocial={() => setMenuVisible(false)}
+      />
+    </SafeAreaView>
+  );
 };
 
 const getStyles = (colors: any) => StyleSheet.create({
