@@ -8,7 +8,7 @@ import { Typography } from '../components/ui/Typography';
 import { useTheme } from '../context/ThemeContext';
 import { layout } from '../theme/layout';
 import api from '../api/client';
-import { LogoutConfirmModal } from '../components/LogoutConfirmModal';
+
 import { MenuModal } from '../components/MenuModal';
 import { useAuth } from '../context/AuthContext';
 
@@ -34,7 +34,6 @@ export function DataPrivacyScreen({ navigation }: DataPrivacyScreenProps) {
   const [stats, setStats] = useState<PrivacyStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
 
   useEffect(() => {
@@ -75,12 +74,18 @@ export function DataPrivacyScreen({ navigation }: DataPrivacyScreenProps) {
   };
 
   const handleDeleteAccount = () => {
-    setShowDeleteModal(true);
+    Alert.alert(
+      'Delete Account',
+      'Are you sure you want to shred your receipts and erase your account permanently? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete Permanently', style: 'destructive', onPress: proceedWithDeletion }
+      ]
+    );
   };
 
   const proceedWithDeletion = async () => {
     try {
-      setShowDeleteModal(false);
       await api.delete('/api/users/profile');
       await logout();
     } catch (e) {
@@ -208,12 +213,6 @@ export function DataPrivacyScreen({ navigation }: DataPrivacyScreenProps) {
         </View>
       </ScrollView>
 
-      <LogoutConfirmModal
-        visible={showDeleteModal}
-        onStay={() => setShowDeleteModal(false)}
-        onLeave={proceedWithDeletion}
-        mode="delete"
-      />
 
       <MenuModal
         visible={menuVisible}

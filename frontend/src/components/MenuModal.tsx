@@ -4,7 +4,6 @@ import { Feather } from '@expo/vector-icons';
 import { Typography } from './ui/Typography';
 import { useTheme } from '../context/ThemeContext';
 import { layout } from '../theme/layout';
-import { LogoutConfirmModal } from './LogoutConfirmModal';
 
 type MenuModalProps = {
   visible: boolean;
@@ -21,13 +20,12 @@ type MenuModalProps = {
 };
 
 export function MenuModal({ visible, onClose, onLogout, onNavigateToProfile, onNavigateToCalendar, onNavigateToWeeklyReport, onNavigateToNotifications, onNavigateToAccount, onNavigateToDataPrivacy, onNavigateToAboutHelp, onNavigateToSocial }: MenuModalProps) {
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const { colors } = useTheme();
   const styles = React.useMemo(() => getStyles(colors), [colors]);
 
   const handleLogoutPress = () => {
-    onClose(); // Close the side menu
-    setTimeout(() => setShowLogoutConfirm(true), 300); // Small delay for smooth feel
+    onClose();
+    onLogout();
   };
 
   return (
@@ -151,7 +149,7 @@ export function MenuModal({ visible, onClose, onLogout, onNavigateToProfile, onN
               <View style={styles.footer}>
                 <TouchableOpacity style={styles.logoutButton} onPress={handleLogoutPress}>
                   <Feather name="log-out" size={20} color={colors.error || '#D9534F'} style={styles.menuIcon} />
-                  <Typography variant="bold" color={colors.error || '#D9534F'}>Settle & Log Out</Typography>
+                  <Typography variant="bold" color={colors.error || '#D9534F'}>Log Out</Typography>
                 </TouchableOpacity>
               </View>
             </SafeAreaView>
@@ -159,15 +157,6 @@ export function MenuModal({ visible, onClose, onLogout, onNavigateToProfile, onN
         </View>
       </Modal>
 
-      {/* Guilt-Trip Logout Confirmation */}
-      <LogoutConfirmModal
-        visible={showLogoutConfirm}
-        onStay={() => setShowLogoutConfirm(false)}
-        onLeave={() => {
-          setShowLogoutConfirm(false);
-          onLogout();
-        }}
-      />
     </>
   );
 }
