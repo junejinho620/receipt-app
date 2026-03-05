@@ -17,8 +17,17 @@ import { Typography } from '../components/ui/Typography';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/Button';
 import Svg, { Path } from 'react-native-svg';
+import {
+  GoogleSignin,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
+
+GoogleSignin.configure({
+  webClientId: '335864162970-f35poerju33gg7ng1esu6k2r5sh4tn6m.apps.googleusercontent.com',
+  iosClientId: '335864162970-uia7fu60f3r2aa4p9s1op8u9sim360k0.apps.googleusercontent.com',
+});
 
 type AuthScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Auth'>;
@@ -31,12 +40,12 @@ export function AuthScreen({ navigation }: AuthScreenProps) {
   const [mode, setMode] = useState<AuthMode>('signup');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
 
   const isSignUp = mode === 'signup';
   const isFormValid = isSignUp
-    ? email.trim() && password.trim() && name.trim()
+    ? email.trim() && password.trim() && username.trim()
     : email.trim() && password.trim();
 
   const handleSubmit = async () => {
@@ -48,7 +57,7 @@ export function AuthScreen({ navigation }: AuthScreenProps) {
         // Sign Up
         const response = await api.post('/api/auth/signup', {
           email,
-          username: name,
+          username,
           password,
         });
         await login(response.data.data, response.data.token);
@@ -88,27 +97,51 @@ export function AuthScreen({ navigation }: AuthScreenProps) {
     }
   };
 
-  const handleSocialAuth = (provider: 'apple' | 'google') => {
-    // TODO: Implement social authentication
-    Alert.alert('Upcoming Feature', `Social Auth with ${provider} is not yet implemented.`);
+  const handleSocialAuth = async (provider: 'apple' | 'google') => {
+    if (provider === 'google') {
+      try {
+        setLoading(true);
+        await GoogleSignin.hasPlayServices();
+        const response = await GoogleSignin.signIn() as any;
+
+        // Handle varying library versions
+        const idToken = response?.data?.idToken || response?.idToken;
+        if (!idToken) throw new Error('No ID token was returned from Google.');
+
+        // Send token to backend
+        const serverRes = await api.post('/api/auth/google', { idToken });
+        await login(serverRes.data.data, serverRes.data.token);
+      } catch (error: any) {
+        if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+          // user cancelled the login flow
+        } else if (error.code === statusCodes.IN_PROGRESS) {
+          // operation (e.g. sign in) is in progress already
+        } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+          Alert.alert('Play Services Not Available', 'Google Play services are required.');
+        } else {
+          Alert.alert('Google Sign-In Failed', error.message || 'An unexpected error occurred.');
+        }
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      Alert.alert('Upcoming Feature', `Social Auth with ${provider} is not yet implemented.`);
+    }
   };
 
   return (
     <ScreenWrapper>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
-      >
+      <View style={styles.keyboardView}>
         <ScrollView
           contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps="always"
           bounces={false}
         >
           <View style={styles.topContent}>
             {/* Header */}
             <View style={styles.header}>
               <Typography variant="bold" size="small" color={colors.primary} style={styles.logo}>
-                THE RECEIPT
+                the RECEIPT
               </Typography>
               <Typography variant="bold" size="h1" style={styles.title}>
                 {isSignUp ? 'Create Account' : 'Welcome Back'}
@@ -124,12 +157,12 @@ export function AuthScreen({ navigation }: AuthScreenProps) {
             <View style={styles.form}>
               {isSignUp && (
                 <Input
-                  label="Name"
-                  placeholder="Your Name"
-                  value={name}
-                  onChangeText={setName}
-                  autoCapitalize="words"
-                  autoComplete="name"
+                  label="Username"
+                  placeholder="Your Username"
+                  value={username}
+                  onChangeText={setUsername}
+                  autoCapitalize="none"
+                  autoComplete="username"
                 />
               )}
 
@@ -189,7 +222,7 @@ export function AuthScreen({ navigation }: AuthScreenProps) {
                 <Svg width={24} height={24} viewBox="0 0 384 512" style={styles.socialIcon}>
                   <Path fill="#FFFFFF" d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z" />
                 </Svg>
-                <Typography variant="bold" size="small" color="#FFFFFF">Sign in with Apple</Typography>
+                <Typography variant="bold" size="small" color="#FFFFFF">{isSignUp ? 'Sign up with Apple' : 'Sign in with Apple'}</Typography>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -212,7 +245,7 @@ export function AuthScreen({ navigation }: AuthScreenProps) {
                   <Path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
                   <Path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
                 </Svg>
-                <Typography variant="bold" size="small" color="#3C4043">Sign in with Google</Typography>
+                <Typography variant="bold" size="small" color="#3C4043">{isSignUp ? 'Sign up with Google' : 'Sign in with Google'}</Typography>
               </TouchableOpacity>
             </View>
           </View>
@@ -231,7 +264,7 @@ export function AuthScreen({ navigation }: AuthScreenProps) {
             </TouchableOpacity>
           </View>
         </ScrollView>
-      </KeyboardAvoidingView>
+      </View>
     </ScreenWrapper>
   );
 }

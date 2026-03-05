@@ -36,7 +36,7 @@ export function SplashScreen() {
           the RECEIPT
         </Typography>
         <Typography variant="medium" size="small" color={colors.textSecondary} style={styles.subtitle}>
-          MINDFUL EXPENSES
+          YOUR DAILY LIFE, SUMMARIZED
         </Typography>
       </Animated.View>
     </ScreenWrapper>

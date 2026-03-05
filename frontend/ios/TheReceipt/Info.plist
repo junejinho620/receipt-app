@@ -27,7 +27,7 @@
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
-          <string>com.anonymous.thereceipt</string>
+          <string>com.googleusercontent.apps.335864162970-uia7fu60f3r2aa4p9s1op8u9sim360k0</string>
         </array>
       </dict>
     </array>
@@ -47,7 +47,9 @@
     <key>NSCameraUsageDescription</key>
     <string>Allow The Receipt to access your camera to scan physical receipts.</string>
     <key>NSMicrophoneUsageDescription</key>
-    <string>Allow The Receipt to access your microphone for recording audio.</string>
+    <string>Allow $(PRODUCT_NAME) to access your microphone</string>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>Allow $(PRODUCT_NAME) to save photos</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>Allow The Receipt to access your photos to attach images to your daily log.</string>
     <key>UILaunchStoryboardName</key>

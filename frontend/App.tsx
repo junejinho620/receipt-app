@@ -10,11 +10,17 @@ import { ThemeProvider } from './src/context/ThemeContext';
 import { customFonts } from './src/theme/typography';
 
 import * as Notifications from 'expo-notifications';
+import * as Sentry from '@sentry/react-native';
+
+Sentry.init({
+  dsn: 'https://bd42a6d8ffe5dcae6e8ebd6e3ee3b4dc@o4510988395085824.ingest.us.sentry.io/4510988406620160',
+  debug: false,
+});
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
 
-export default function App() {
+function App() {
   const [fontsLoaded] = useFonts(customFonts);
 
   React.useEffect(() => {
@@ -50,3 +56,5 @@ export default function App() {
     </SafeAreaProvider>
   );
 }
+
+export default Sentry.wrap(App);

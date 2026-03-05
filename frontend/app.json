@@ -14,7 +14,16 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.thereceipt"
+      "bundleIdentifier": "com.anonymous.thereceipt",
+      "infoPlist": {
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "com.googleusercontent.apps.335864162970-uia7fu60f3r2aa4p9s1op8u9sim360k0"
+            ]
+          }
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -29,6 +38,12 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.335864162970-uia7fu60f3r2aa4p9s1op8u9sim360k0"
+        }
+      ],
       "expo-notifications",
       "expo-asset",
       [
@@ -44,7 +59,8 @@
         }
       ],
       "expo-notifications",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "@sentry/react-native"
     ]
   }
 }

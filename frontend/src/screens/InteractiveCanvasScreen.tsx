@@ -102,7 +102,6 @@ export function InteractiveCanvasScreen({ navigation }: InteractiveCanvasScreenP
         ]);
       }
     } catch (error: any) {
-      console.error(error);
       Alert.alert('Error', error.response?.data?.error || 'Failed to submit receipt.');
     } finally {
       setLoading(false);

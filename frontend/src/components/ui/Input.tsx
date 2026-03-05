@@ -20,13 +20,18 @@ export const Input: React.FC<InputProps> = ({
 }) => {
   const [isFocused, setIsFocused] = useState(false);
 
+  React.useEffect(() => {
+    console.log(`Input ${label} mounted`);
+    return () => console.log(`Input ${label} UNMOUNTED`);
+  }, [label]);
+
   const handleFocus = (e: any) => {
-    setIsFocused(true);
+    // setIsFocused(true);
     onFocus?.(e);
   };
 
   const handleBlur = (e: any) => {
-    setIsFocused(false);
+    // setIsFocused(false);
     onBlur?.(e);
   };
 
@@ -97,7 +102,7 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.body,
     color: colors.textPrimary,
     flex: 1,
-    height: '100%',
+    padding: 0,
   },
   errorText: {
     marginTop: layout.spacing.xs,
