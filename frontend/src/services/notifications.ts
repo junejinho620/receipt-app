@@ -12,32 +12,32 @@ Notifications.setNotificationHandler({
 
 const CREATIVE_COPY = [
   {
-    title: "Closing Time 🧾",
-    body: "The register is closing soon. Settle your books for the day."
+    title: "A Gentle Reminder 📝",
+    body: "Your daily note is ready. Take a moment to reflect on your day."
   },
   {
-    title: "Daily Audit 🔍",
-    body: "What made you smile today? Print it to your receipt."
+    title: "Daily Reflection 🔍",
+    body: "What made you smile today? Add it to your archive."
   },
   {
     title: "Streak Saver ⏳",
-    body: "Don't break the chain! Log today's entry before midnight."
+    body: "Keep your momentum going! Jot down today's note before midnight."
   },
   {
-    title: "Time is Currency 💱",
-    body: "Every day is a transaction. What did you spend your time on today?"
+    title: "Your Day in Review 🌅",
+    body: "Every day matters. What was the highlight of yours?"
   },
   {
-    title: "End of Shift 🌙",
+    title: "Time to Unwind 🌙",
     body: "Time to wrap up. How did today go?"
   },
   {
-    title: "Inventory Check 📦",
-    body: "Take stock of your day. What's one thing you're grateful for?"
+    title: "A Moment of Peace 📦",
+    body: "Take a deep breath and look back. What's one thing you're grateful for?"
   },
   {
     title: "A Penny for Your Thoughts 🪙",
-    body: "What's on your mind? Log it before you forget."
+    body: "What's on your mind? Note it down before you forget."
   }
 ];
 

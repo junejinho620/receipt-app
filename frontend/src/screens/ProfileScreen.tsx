@@ -179,12 +179,12 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
         <Card style={styles.progressCard}>
           <Typography variant="regular" size="body" color={colors.textSecondary} style={styles.progressText}>
             {loading
-              ? 'Loading your ledger status...'
+              ? 'Loading your archive status...'
               : profileData && profileData.stats.totalEntries < 10
                 ? 'You are just getting started. Keep going and build the habit!'
                 : profileData && profileData.stats.totalEntries < 50
-                  ? 'A solid start! Keep settling your books consistently.'
-                  : 'You are an experienced ledger keeper. Impressive discipline!'}
+                  ? 'A solid start! Keep recording your notes consistently.'
+                  : 'You are an experienced keeper of the archive. Impressive discipline!'}
           </Typography>
 
           <View style={styles.divider} />
@@ -239,7 +239,10 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
           {/* Full Width Stat */}
           <Card style={styles.statCardFull}>
             <View style={styles.statRow}>
-              <Feather name="calendar" size={20} color={colors.primary} style={{ marginRight: 12 }} />
+              <Image
+                source={require('../assets/images/stats_calendar_icon.png')}
+                style={{ width: 44, height: 44, marginRight: 16, resizeMode: 'contain' }}
+              />
               <View>
                 {loading ? (
                   <ActivityIndicator size="small" color={colors.primary} />
@@ -248,7 +251,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
                     {profileData?.stats.totalEntries ?? 0}
                   </Typography>
                 )}
-                <Typography variant="regular" size="small" color={colors.textSecondary}>Ledgers settled this month</Typography>
+                <Typography variant="regular" size="small" color={colors.textSecondary}>Notes recorded this month</Typography>
               </View>
             </View>
           </Card>
@@ -257,7 +260,10 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
           <View style={styles.halfStatsRow}>
             <Card style={styles.statCardHalf}>
               <View style={styles.statRowSmall}>
-                <Typography size="body" style={{ marginRight: 8 }}>🔥</Typography>
+                <Image
+                  source={require('../assets/images/streak_flame_icon.png')}
+                  style={{ width: 36, height: 36, marginRight: 8, resizeMode: 'contain' }}
+                />
                 {loading ? (
                   <ActivityIndicator size="small" color={colors.primary} />
                 ) : (
@@ -275,7 +281,10 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
               activeOpacity={0.7}
             >
               <View style={styles.statRowSmall}>
-                <Typography size="body" style={{ marginRight: 8 }}>🏆</Typography>
+                <Image
+                  source={require('../assets/images/achievement_trophy_icon.png')}
+                  style={{ width: 36, height: 36, marginRight: 8, resizeMode: 'contain' }}
+                />
                 <Typography variant="bold" size="h2" color={colors.textPrimary}>{AVAILABLE_TITLES.length}</Typography>
               </View>
               <Typography variant="regular" size="small" color={colors.textSecondary} style={{ marginTop: 4 }}>Achievements</Typography>
@@ -387,7 +396,10 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
                     <View style={{ flex: 1 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                         {!isUnlocked && <Feather name="lock" size={14} color={colors.textSecondary} style={{ marginRight: 8 }} />}
-                        <Typography size="body" style={{ marginRight: 6 }}>{def.emoji}</Typography>
+                        <Image
+                          source={def.icon}
+                          style={{ width: 24, height: 24, marginRight: 8, resizeMode: 'contain', opacity: isUnlocked ? 1 : 0.4 }}
+                        />
                         <Typography
                           variant={selectedTitle === def.id ? "bold" : "bold"}
                           color={selectedTitle === def.id ? colors.surface : colors.textPrimary}

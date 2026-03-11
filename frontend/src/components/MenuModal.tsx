@@ -46,7 +46,7 @@ export function MenuModal({ visible, onClose, onLogout, onNavigateToProfile, onN
 
                 <View style={styles.section}>
                   <Typography variant="bold" size="small" color={colors.textSecondary} style={styles.sectionTitle}>
-                    YOUR SPHERE
+                    YOUR CIRCLE
                   </Typography>
                   <TouchableOpacity
                     style={styles.menuItem}
@@ -73,7 +73,7 @@ export function MenuModal({ visible, onClose, onLogout, onNavigateToProfile, onN
                 {/* Archive */}
                 <View style={styles.section}>
                   <Typography variant="bold" size="small" color={colors.textSecondary} style={styles.sectionTitle}>
-                    THE LEDGER
+                    THE ARCHIVE
                   </Typography>
                   <TouchableOpacity
                     style={styles.menuItem}
@@ -100,7 +100,7 @@ export function MenuModal({ visible, onClose, onLogout, onNavigateToProfile, onN
                 {/* Settings */}
                 <View style={styles.section}>
                   <Typography variant="bold" size="small" color={colors.textSecondary} style={styles.sectionTitle}>
-                    SYSTEM
+                    SETTINGS
                   </Typography>
                   <TouchableOpacity
                     style={styles.menuItem}

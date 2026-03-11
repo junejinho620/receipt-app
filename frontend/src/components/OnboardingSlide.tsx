@@ -15,8 +15,10 @@ const { width } = Dimensions.get('window');
 export function OnboardingSlide({ image, title, description }: OnboardingSlideProps) {
   return (
     <View style={styles.container}>
-      <View style={styles.iconContainer}>
-        <Image source={image} style={styles.image} resizeMode="contain" />
+      <View style={styles.imageWrapper}>
+        <View style={styles.iconContainer}>
+          <Image source={image} style={styles.image} resizeMode="contain" />
+        </View>
       </View>
       <View style={styles.textContainer}>
         <Typography
@@ -45,12 +47,16 @@ export function OnboardingSlide({ image, title, description }: OnboardingSlidePr
 const styles = StyleSheet.create({
   container: {
     width,
-    alignItems: 'center',
-    justifyContent: 'center',
+    flex: 1,
     paddingHorizontal: layout.spacing.xl,
   },
+  imageWrapper: {
+    flex: 1.1,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingBottom: layout.spacing.xxl,
+  },
   iconContainer: {
-    marginBottom: layout.spacing.xxl,
     width: 200,
     height: 200,
     borderRadius: 100,
@@ -69,7 +75,9 @@ const styles = StyleSheet.create({
     height: '80%',
   },
   textContainer: {
+    flex: 1,
     alignItems: 'center',
+    justifyContent: 'flex-start',
     gap: layout.spacing.m,
   },
   title: {

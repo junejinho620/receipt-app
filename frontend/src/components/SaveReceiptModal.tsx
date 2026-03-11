@@ -39,15 +39,15 @@ export function SaveReceiptModal({ visible, onClose, onSignUp }: SaveReceiptModa
               </View>
 
               <Typography variant="display" size="h2" centered style={styles.title}>
-                Save to Archive
+                Save Note
               </Typography>
 
               <Typography variant="regular" color={colors.textSecondary} centered style={styles.description}>
-                Save your first receipt to start your archive.
+                Save your first receipt to start your timeline.
               </Typography>
 
               <Button
-                title="Create Account"
+                title="Save Note"
                 onPress={onSignUp}
                 variant="primary"
                 style={styles.button}

@@ -148,7 +148,7 @@ export function AuthScreen({ navigation }: AuthScreenProps) {
               </Typography>
               <Typography variant="regular" color={colors.textSecondary} style={styles.subtitle}>
                 {isSignUp
-                  ? 'Start your daily closing ritual.'
+                  ? 'Start your daily note.'
                   : 'Sign in to access your history.'}
               </Typography>
             </View>

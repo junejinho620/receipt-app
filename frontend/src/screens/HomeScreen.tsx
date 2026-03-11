@@ -32,7 +32,7 @@ type HomeScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Home'>;
 };
 
-type activeTabType = 'Journal' | 'Evidence' | 'Prompts';
+type activeTabType = 'Journal' | 'Add-on' | 'Prompts';
 type MediaType = 'Photo' | 'Music';
 type InputType = 'Text' | 'Emoji';
 
@@ -101,7 +101,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
         if (response.data.data) {
           const log = response.data.data;
 
-          // Reconstruct the media array from flat fields so Evidence tab displays correctly
+          // Reconstruct the media array from flat fields so Add-on tab displays correctly
           const media: any[] = [];
           if (log.photoUrl) {
             media.push({ type: 'image', url: log.photoUrl });
@@ -191,7 +191,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
       const savedLog = response.data.data;
       const newlyUnlocked = response.data.newlyUnlocked || [];
 
-      // Reconstruct media array so Evidence tab shows saved music/photo immediately
+      // Reconstruct media array so Add-on tab shows saved music/photo immediately
       const media: any[] = [];
       if (savedLog.photoUrl) media.push({ type: 'image', url: savedLog.photoUrl });
       if (savedLog.musicTitle) {
@@ -211,7 +211,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
       }
     } catch (err: any) {
       console.error(err);
-      Alert.alert('Error', err.response?.data?.error || 'Failed to settle book. You might have already submitted today.');
+      Alert.alert('Error', err.response?.data?.error || 'Failed to record note. You might have already submitted today.');
     } finally {
       setIsSaving(false);
     }
@@ -254,7 +254,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
 
         {/* Tab Navigation */}
         <Animated.View entering={FadeInDown.delay(150).springify()} style={styles.tabContainer}>
-          {(['Journal', 'Evidence', 'Prompts'] as activeTabType[]).map((tab) => (
+          {(['Journal', 'Add-on', 'Prompts'] as activeTabType[]).map((tab) => (
             <TouchableOpacity
               key={tab}
               style={[styles.tabButton, activeTab === tab && styles.tabButtonActive]}
@@ -367,7 +367,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
               </Animated.View>
             )}
 
-            {activeTab === 'Evidence' && (
+            {activeTab === 'Add-on' && (
               <Animated.View entering={FadeInDown.duration(200)} style={styles.addonsContainer}>
                 <View style={styles.modeSelector}>
                   {(['Photo', 'Music'] as MediaType[]).map((type) => (
@@ -563,7 +563,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
         {/* Submit */}
         <Animated.View entering={FadeInDown.delay(400).springify()} style={styles.footer}>
           <Button
-            title={existingLog ? "Entry Locked" : "Settle the Books"}
+            title={existingLog ? "Entry Locked" : "Record Note"}
             onPress={handleSubmit}
             disabled={!hasContent || !!existingLog || isSaving || isLoadingLog}
             loading={isSaving}

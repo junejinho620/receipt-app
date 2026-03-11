@@ -55,8 +55,8 @@ export function OnboardingScreen({ navigation }: OnboardingScreenProps) {
   return (
     <ScreenWrapper>
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleSkip} hitSlop={16}>
-          <Typography variant="medium" size="small" color={colors.textSecondary}>Skip</Typography>
+        <TouchableOpacity onPress={handleSkip} hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}>
+          <Typography variant="bold" size="body" color={colors.textSecondary}>Skip</Typography>
         </TouchableOpacity>
       </View>
 

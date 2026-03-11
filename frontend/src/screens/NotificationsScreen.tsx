@@ -118,7 +118,7 @@ export function NotificationsScreen({ navigation }: NotificationsScreenProps) {
         </TouchableOpacity>
 
         <View style={styles.headerTitle}>
-          <Typography variant="bold" size="h2" color={colors.textPrimary}>System</Typography>
+          <Typography variant="bold" size="h2" color={colors.textPrimary}>Settings</Typography>
           <Typography variant="regular" size="small" color={colors.textSecondary}>Notifications</Typography>
         </View>
 
@@ -133,13 +133,13 @@ export function NotificationsScreen({ navigation }: NotificationsScreenProps) {
           Choose how and when The Receipt should gently nudge you. Form habits, not addictions.
         </Typography>
 
-        {/* The Daily Closing Ritual */}
+        {/* The Daily Note */}
         <View style={styles.section}>
           <View style={styles.settingRow}>
             <View style={styles.settingText}>
-              <Typography variant="bold" size="body" color={colors.textPrimary}>The Daily Closing Ritual</Typography>
+              <Typography variant="bold" size="body" color={colors.textPrimary}>The Daily Reminder</Typography>
               <Typography variant="regular" size="small" color={colors.textSecondary} style={{ marginTop: 4 }}>
-                A gentle nudge to settle your ledger for the day.
+                A gentle nudge to record your note for the day.
               </Typography>
             </View>
             <CustomSwitch value={dailyRitual} onValueChange={handleToggleDailyRitual} />

@@ -37,7 +37,7 @@ const FAQ_ITEMS = [
   },
   {
     q: 'How do I export my memories?',
-    a: 'Head to System → Data & Privacy and tap "Print Full Receipt". A download link arrives in your inbox shortly after.',
+    a: 'Head to Settings → Data & Privacy and tap "Print Full Receipt". A download link arrives in your inbox shortly after.',
   },
   {
     q: 'What happens when I delete my account?',
@@ -122,7 +122,7 @@ export function AboutHelpScreen({ navigation }: AboutHelpScreenProps) {
         </TouchableOpacity>
 
         <View style={styles.headerTitle}>
-          <Typography variant="bold" size="h2" color={colors.textPrimary}>System</Typography>
+          <Typography variant="bold" size="h2" color={colors.textPrimary}>Settings</Typography>
           <Typography variant="regular" size="small" color={colors.textSecondary}>About & Help</Typography>
         </View>
 
@@ -138,10 +138,10 @@ export function AboutHelpScreen({ navigation }: AboutHelpScreenProps) {
         {/* Hero */}
         <Animated.View style={[styles.heroBlock, { opacity: heroOp }]}>
           <Typography variant="bold" size="h2" color={colors.textPrimary} style={styles.heroTitle}>
-            Your memories,{'\n'}your ledger.
+            Your memories,{'\n'}your archive.
           </Typography>
           <Typography variant="regular" color={colors.textSecondary} style={styles.heroSub}>
-            Receipt is a private daily journaling system built around the belief that reflection should feel like a ritual, not a chore.
+            Receipt is a private daily journaling system built around the belief that reflection should feel like a natural habit, not a chore.
           </Typography>
         </Animated.View>
 

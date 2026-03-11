@@ -82,7 +82,7 @@ export function PermissionsScreen({ navigation }: PermissionsScreenProps) {
             <View style={styles.permissionTexts}>
               <Typography variant="bold" size="body">Notifications</Typography>
               <Typography variant="regular" size="small" color={colors.textSecondary}>
-                To remind you to complete your daily closing ritual.
+                To remind you to complete your daily note.
               </Typography>
             </View>
           </View>

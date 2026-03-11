@@ -1,16 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, Alert } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  SafeAreaView,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { ScreenWrapper } from '../components/ui/ScreenWrapper';
 import { Typography } from '../components/ui/Typography';
 import { useTheme } from '../context/ThemeContext';
 import { layout } from '../theme/layout';
 import api from '../api/client';
-
 import { MenuModal } from '../components/MenuModal';
 import { useAuth } from '../context/AuthContext';
+import { LogoutConfirmModal } from '../components/LogoutConfirmModal';
 
 type DataPrivacyScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'DataPrivacy'>;
 
@@ -26,6 +33,8 @@ interface PrivacyStats {
   accountAgeDays: number;
 }
 
+// ─── Main Screen ─────────────────────────────────────────────────────────────
+
 export function DataPrivacyScreen({ navigation }: DataPrivacyScreenProps) {
   const { colors } = useTheme();
   const styles = React.useMemo(() => getStyles(colors), [colors]);
@@ -35,6 +44,7 @@ export function DataPrivacyScreen({ navigation }: DataPrivacyScreenProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   useEffect(() => {
     fetchStats();
@@ -57,10 +67,8 @@ export function DataPrivacyScreen({ navigation }: DataPrivacyScreenProps) {
   const handleExport = async () => {
     setIsExporting(true);
     try {
-      // Trigger the export endpoint — it returns a JSON download
       const response = await api.get('/api/users/export', { responseType: 'json' });
-      // Since mobile can't trigger browser downloads directly, show the data summary
-      const { logs, weeklyReports, achievements, profile } = response.data;
+      const { logs, weeklyReports, achievements } = response.data;
       Alert.alert(
         'Export Ready ✓',
         `Your data archive includes:\n• ${logs?.length ?? 0} log entries\n• ${weeklyReports?.length ?? 0} weekly reports\n• ${achievements?.length ?? 0} achievements\n\nFor a full JSON download, visit: ${api.defaults.baseURL}/api/users/export from a browser while logged in.`,
@@ -74,17 +82,11 @@ export function DataPrivacyScreen({ navigation }: DataPrivacyScreenProps) {
   };
 
   const handleDeleteAccount = () => {
-    Alert.alert(
-      'Delete Account',
-      'Are you sure you want to shred your receipts and erase your account permanently? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete Permanently', style: 'destructive', onPress: proceedWithDeletion }
-      ]
-    );
+    setShowDeleteModal(true);
   };
 
   const proceedWithDeletion = async () => {
+    setShowDeleteModal(false);
     try {
       await api.delete('/api/users/profile');
       await logout();
@@ -102,7 +104,7 @@ export function DataPrivacyScreen({ navigation }: DataPrivacyScreenProps) {
         </TouchableOpacity>
 
         <View style={styles.headerTitle}>
-          <Typography variant="bold" size="h2" color={colors.textPrimary}>System</Typography>
+          <Typography variant="bold" size="h2" color={colors.textPrimary}>Settings</Typography>
           <Typography variant="regular" size="small" color={colors.textSecondary}>Data & Privacy</Typography>
         </View>
 
@@ -177,7 +179,7 @@ export function DataPrivacyScreen({ navigation }: DataPrivacyScreenProps) {
 
           <View style={styles.receiptFooter}>
             <Typography variant="regular" size="small" color={colors.textSecondary} style={styles.barcodeText}>
-              || | | ||| | || | | |||
+              ||||| || ||| | |||| | ||| || |||| | || ||| || |||
             </Typography>
             <Typography variant="regular" size="small" color={colors.textTertiary} style={{ fontFamily: 'JetBrainsMono_400Regular', marginTop: 4 }}>
               END OF RECEIPT
@@ -213,6 +215,13 @@ export function DataPrivacyScreen({ navigation }: DataPrivacyScreenProps) {
         </View>
       </ScrollView>
 
+      {/* Please Don't Go Modal */}
+      <LogoutConfirmModal
+        visible={showDeleteModal}
+        mode="delete"
+        onStay={() => setShowDeleteModal(false)}
+        onLeave={proceedWithDeletion}
+      />
 
       <MenuModal
         visible={menuVisible}
@@ -342,8 +351,8 @@ const getStyles = (colors: any) => StyleSheet.create({
   },
   barcodeText: {
     fontFamily: 'JetBrainsMono_400Regular',
-    letterSpacing: 4,
-    transform: [{ scaleY: 1.5 }],
+    letterSpacing: 1,
+    transform: [{ scaleY: 2 }],
     marginBottom: 8,
   },
   actionsContainer: {

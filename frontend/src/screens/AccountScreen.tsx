@@ -65,7 +65,7 @@ export function AccountScreen({ navigation }: AccountScreenProps) {
         </TouchableOpacity>
 
         <View style={styles.headerTitle}>
-          <Typography variant="bold" size="h2" color={colors.textPrimary}>System</Typography>
+          <Typography variant="bold" size="h2" color={colors.textPrimary}>Settings</Typography>
           <Typography variant="regular" size="small" color={colors.textSecondary}>Account Management</Typography>
         </View>
 

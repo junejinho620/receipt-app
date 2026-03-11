@@ -4,6 +4,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { Typography } from '../components/ui/Typography';
+import { Button } from '../components/Button';
 import { MenuModal } from '../components/MenuModal';
 import { useTheme } from '../context/ThemeContext';
 import { layout } from '../theme/layout';
@@ -55,7 +56,7 @@ export function WeeklyReportScreen({ navigation }: WeeklyReportScreenProps) {
         </TouchableOpacity>
 
         <View style={styles.headerTitle}>
-          <Typography variant="bold" size="h2" color={colors.textPrimary}>The Ledger</Typography>
+          <Typography variant="bold" size="h2" color={colors.textPrimary}>The Archive</Typography>
           <Typography variant="regular" size="small" color={colors.textSecondary}>Weekly Reports</Typography>
         </View>
 
@@ -71,7 +72,7 @@ export function WeeklyReportScreen({ navigation }: WeeklyReportScreenProps) {
             <Feather name="layers" size={32} color={colors.textPrimary} />
           </View>
           <Typography variant="bold" size="h1" color={colors.textPrimary} style={{ marginBottom: 8 }}>
-            Archive
+            Memories
           </Typography>
           <Typography variant="regular" size="body" color={colors.textSecondary} centered>
             Every 7 days, your receipts are stitched into a Weekly Montage. Relive your past weeks below.
@@ -79,37 +80,51 @@ export function WeeklyReportScreen({ navigation }: WeeklyReportScreenProps) {
         </View>
 
         <View style={styles.weeksContainer}>
-          {reports.map((week) => (
-            <TouchableOpacity
-              key={week.id}
-              style={styles.weekCard}
-              onPress={() => navigation.navigate('WeeklyMontage', { weekId: week.id, title: week.title, range: week.range })}
-            >
-              <View style={styles.cardHeader}>
-                <View>
-                  <Typography variant="bold" size="h2" color={colors.textPrimary}>{week.title}</Typography>
-                  <Typography variant="mono" size="small" color={colors.textTertiary} style={{ marginTop: 4 }}>
-                    {week.range}
-                  </Typography>
-                </View>
-                <View style={styles.receiptCountBadge}>
-                  <Typography variant="bold" size="small" color={colors.surface}>
-                    {week.totalReceipts}
-                  </Typography>
-                  <Feather name="file-text" size={12} color={colors.surface} style={{ marginLeft: 4 }} />
-                </View>
-              </View>
-
-              <Typography variant="regular" size="small" color={colors.textSecondary} style={{ marginTop: 16 }}>
-                "{week.subtitle}"
+          {reports.length === 0 && !isLoading ? (
+            <View style={styles.emptyStateContainer}>
+              <Typography variant="bold" size="h3" color={colors.textSecondary} style={{ marginBottom: 24, marginTop: 40 }} centered>
+                You don't have any reports yet!
               </Typography>
+              <Button
+                title="Add memory"
+                onPress={() => navigation.navigate('Home')}
+                variant="primary"
+                style={{ width: '53%' }}
+              />
+            </View>
+          ) : (
+            reports.map((week) => (
+              <TouchableOpacity
+                key={week.id}
+                style={styles.weekCard}
+                onPress={() => navigation.navigate('WeeklyMontage', { weekId: week.id, title: week.title, range: week.range })}
+              >
+                <View style={styles.cardHeader}>
+                  <View>
+                    <Typography variant="bold" size="h2" color={colors.textPrimary}>{week.title}</Typography>
+                    <Typography variant="mono" size="small" color={colors.textTertiary} style={{ marginTop: 4 }}>
+                      {week.range}
+                    </Typography>
+                  </View>
+                  <View style={styles.receiptCountBadge}>
+                    <Typography variant="bold" size="small" color={colors.surface}>
+                      {week.totalReceipts}
+                    </Typography>
+                    <Feather name="file-text" size={12} color={colors.surface} style={{ marginLeft: 4 }} />
+                  </View>
+                </View>
 
-              <View style={styles.cardFooter}>
-                <Typography variant="medium" size="small" color={colors.primary}>Play Montage</Typography>
-                <Feather name="play-circle" size={16} color={colors.primary} />
-              </View>
-            </TouchableOpacity>
-          ))}
+                <Typography variant="regular" size="small" color={colors.textSecondary} style={{ marginTop: 16 }}>
+                  "{week.subtitle}"
+                </Typography>
+
+                <View style={styles.cardFooter}>
+                  <Typography variant="medium" size="small" color={colors.primary}>Play Montage</Typography>
+                  <Feather name="play-circle" size={16} color={colors.primary} />
+                </View>
+              </TouchableOpacity>
+            ))
+          )}
         </View>
 
       </ScrollView>
@@ -218,5 +233,23 @@ const getStyles = (colors: any) => StyleSheet.create({
     paddingTop: 16,
     borderTopWidth: 1,
     borderTopColor: colors.border,
+  },
+  emptyStateContainer: {
+    padding: layout.spacing.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: layout.spacing.xl,
+    backgroundColor: 'transparent',
+  },
+  emptyStateIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.surfaceHighlight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: layout.spacing.l,
+    borderWidth: 1,
+    borderColor: colors.border,
   }
 });

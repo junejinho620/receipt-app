@@ -7,20 +7,20 @@ export interface OnboardingSlide {
 export const ONBOARDING_SLIDES: OnboardingSlide[] = [
   {
     image: require('../assets/images/onboarding_ledger.png'),
-    title: 'Settle the Books',
+    title: 'One Thought a Day',
     description:
-      'Your day is a series of transactions.\nClose the tab on your day with a single, raw entry that proves you were here.',
+      'Leave the noise behind. Jot down a quick thought, a mood, or simply how your day went.',
   },
   {
     image: require('../assets/images/onboarding_camera.png'),
-    title: 'Any Format, Under 60 Seconds',
+    title: 'Express It Your Way',
     description:
-      'Capturing a memory shouldn\'t feel like homework. Drop in a photo, your current favorite song, or a quick thought. \nIf it happened today, it\'s a valid receipt.',
+      'Some days need words, others just need a photo or a song. Record your day however feels right.',
   },
   {
     image: require('../assets/images/onboarding_tape.png'),
     title: 'Your Life on Tape',
     description:
-      'Watch your history unfold on a continuous, scrollable "register tape." \nScroll back through your weeks and months in a tactile, visual index.',
+      'See your days collect into a piece of your story. Scroll back through a calm, visual timeline of your life.',
   },
 ];

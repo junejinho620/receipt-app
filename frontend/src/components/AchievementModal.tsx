@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Modal, ScrollView, Animated } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Modal, ScrollView, Animated, Image } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Typography } from './ui/Typography';
 import { useTheme } from '../context/ThemeContext';
@@ -24,13 +24,13 @@ export function AchievementModal({ visible, unlockedTitleIds, onClose }: Achieve
         <View style={styles.content}>
           <View style={styles.header}>
             <View style={styles.iconCircle}>
-              <Typography size="h1" style={{ fontSize: 32 }}>🏆</Typography>
+              <Image source={require('../assets/images/achievement_trophy_icon.png')} style={{ width: 44, height: 44, resizeMode: 'contain' }} />
             </View>
             <Typography variant="bold" size="h2" style={styles.titleText}>
               Achievement Unlocked!
             </Typography>
             <Typography variant="regular" size="small" color={colors.textSecondary} style={styles.subtitleText}>
-              You earned {unlockedTitleIds.length === 1 ? 'a new title' : 'new titles'} for your ledger.
+              You earned {unlockedTitleIds.length === 1 ? 'a new title' : 'new titles'} for your archive.
             </Typography>
           </View>
 
@@ -41,7 +41,7 @@ export function AchievementModal({ visible, unlockedTitleIds, onClose }: Achieve
               return (
                 <View key={def.id} style={styles.achievementCard}>
                   <View style={styles.emojiBox}>
-                    <Typography size="h2">{def.emoji}</Typography>
+                    <Image source={def.icon} style={{ width: 28, height: 28, resizeMode: 'contain' }} />
                   </View>
                   <View style={styles.achievementInfo}>
                     <Typography variant="bold" size="body" color={colors.textPrimary}>

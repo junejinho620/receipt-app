@@ -506,7 +506,7 @@ export const SocialScreen: React.FC<SocialScreenProps> = ({ navigation }) => {
 
         <View style={styles.headerTitle}>
           <Typography variant="bold" size="h2" color={colors.textPrimary}>
-            Your Sphere
+            Your Circle
           </Typography>
           <Typography variant="regular" size="small" color={colors.textSecondary}>
             Social Feed

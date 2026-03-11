@@ -136,7 +136,7 @@ export function CalendarScreen({ navigation }: CalendarScreenProps) {
         </TouchableOpacity>
 
         <View style={styles.headerTitle}>
-          <Typography variant="bold" size="h2" color={colors.textPrimary}>The Ledger</Typography>
+          <Typography variant="bold" size="h2" color={colors.textPrimary}>The Archive</Typography>
           <Typography variant="regular" size="small" color={colors.textSecondary}>Calendar View</Typography>
         </View>
 
@@ -288,7 +288,7 @@ export function CalendarScreen({ navigation }: CalendarScreenProps) {
                     Oops! You have not logged this day.
                   </Typography>
                   <Typography variant="regular" size="small" color={colors.textTertiary} centered style={{ marginTop: 8 }}>
-                    There are no receipts filed for this date in the ledger.
+                    There are no notes filed for this date in the archive.
                   </Typography>
                 </View>
               )}
